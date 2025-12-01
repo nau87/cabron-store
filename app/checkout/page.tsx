@@ -367,6 +367,15 @@ export default function CheckoutPage() {
                       },
                     }}
                     customization={{
+                      paymentMethods: {
+                        creditCard: 'all',
+                        debitCard: 'all',
+                        ticket: 'all',
+                        bankTransfer: 'all',
+                        atm: 'all',
+                        mercadoPago: 'all',
+                        prepaidCard: 'all',
+                      },
                       visual: {
                         style: {
                           theme: 'default',
