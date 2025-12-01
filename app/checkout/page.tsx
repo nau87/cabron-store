@@ -57,7 +57,7 @@ export default function CheckoutPage() {
           setFormData(prev => ({
             ...prev,
             customer_email: user.email || '',
-            customer_phone: user.raw_user_meta_data?.phone || '',
+            customer_phone: user.user_metadata?.phone || '',
           }));
         }
       }
