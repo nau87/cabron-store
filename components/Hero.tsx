@@ -4,20 +4,19 @@ import Image from 'next/image';
 
 export default function Hero() {
   return (
-    <div className="relative h-[600px] overflow-hidden">
+    <div className="relative h-[600px] overflow-hidden bg-zinc-900">
       {/* Background image con CSS */}
       <div 
-        className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black"
+        className="absolute inset-0"
         style={{
           backgroundImage: 'url(/hero-bg.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          filter: 'brightness(0.75)'
         }}
-      />
-
-      {/* Overlay oscuro */}
-      <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+      >
+        {/* Overlay para oscurecer */}
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+      </div>
 
       {/* Contenido */}
       <div className="relative h-full flex flex-col items-center justify-center text-center px-4">
