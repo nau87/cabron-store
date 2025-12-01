@@ -51,7 +51,7 @@ export default function CheckoutPage() {
             ...prev,
             customer_name: profile.full_name || '',
             customer_email: profile.email || user.email || '',
-            customer_phone: profile.phone || user.raw_user_meta_data?.phone || '',
+            customer_phone: profile.phone || user.user_metadata?.phone || '',
           }));
         } else {
           setFormData(prev => ({
