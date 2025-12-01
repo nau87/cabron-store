@@ -12,7 +12,23 @@ export default function Header() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      setIsMobileMenuOpen(false);
+      await signOut();
+      // Limpiar localStorage
+      localStorage.removeItem('cart');
+      // Forzar recarga completa
+      window.location.replace('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      setIsSigningOut(false);
+    }
+  };
 
   useEffect(() => {
     const cart = localStorage.getItem('cart');
@@ -115,13 +131,11 @@ export default function Header() {
                     {profile?.full_name || user.email}
                   </span>
                   <button
-                    onClick={async () => {
-                      await signOut();
-                      window.location.href = '/';
-                    }}
-                    className="text-xs font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut}
+                    className="text-xs font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors disabled:opacity-50"
                   >
-                    SALIR
+                    {isSigningOut ? 'Saliendo...' : 'SALIR'}
                   </button>
                 </div>
               ) : (
@@ -235,14 +249,11 @@ export default function Header() {
                     {profile?.full_name || user.email}
                   </p>
                   <button
-                    onClick={async () => {
-                      await signOut();
-                      setIsMobileMenuOpen(false);
-                      window.location.href = '/';
-                    }}
-                    className="block text-sm font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut}
+                    className="block text-sm font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors disabled:opacity-50"
                   >
-                    SALIR
+                    {isSigningOut ? 'Saliendo...' : 'SALIR'}
                   </button>
                 </div>
               ) : (
