@@ -5,21 +5,16 @@ import Image from 'next/image';
 export default function Hero() {
   return (
     <div className="relative h-[600px] overflow-hidden">
-      {/* Gradient fallback */}
-      <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black">
-        {/* Background image */}
-        <Image
-          src="/hero-bg.jpg"
-          alt="Hero background"
-          fill
-          className="object-cover brightness-75"
-          priority
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-          }}
-        />
-      </div>
+      {/* Background image con CSS */}
+      <div 
+        className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black"
+        style={{
+          backgroundImage: 'url(/hero-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'brightness(0.75)'
+        }}
+      />
 
       {/* Overlay oscuro */}
       <div className="absolute inset-0 bg-black bg-opacity-30"></div>
