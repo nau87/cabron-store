@@ -115,7 +115,10 @@ export default function Header() {
                     {profile?.full_name || user.email}
                   </span>
                   <button
-                    onClick={() => signOut()}
+                    onClick={async () => {
+                      await signOut();
+                      window.location.href = '/';
+                    }}
                     className="text-xs font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors"
                   >
                     SALIR
@@ -232,9 +235,10 @@ export default function Header() {
                     {profile?.full_name || user.email}
                   </p>
                   <button
-                    onClick={() => {
-                      signOut();
+                    onClick={async () => {
+                      await signOut();
                       setIsMobileMenuOpen(false);
+                      window.location.href = '/';
                     }}
                     className="block text-sm font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors"
                   >
