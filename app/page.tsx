@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/types';
 import Hero from '@/components/Hero';
+import Header from '@/components/Header';
 import { useState, useEffect } from 'react';
 
 async function getProducts() {
@@ -47,37 +48,22 @@ export default function Home() {
   }, [searchTerm, products]);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Banner */}
-      <Hero />
+    <>
+      <Header searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+      <div className="min-h-screen bg-white">
+        {/* Hero Banner */}
+        <Hero />
 
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 pb-20 pt-16">
-        {/* Buscador */}
-        <div className="mb-16">
-          <div className="max-w-2xl mx-auto">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar productos..."
-                className="w-full px-6 py-4 border-2 border-black font-medium text-lg uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-black"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl">
-                🔍
-              </span>
-            </div>
-            {searchTerm && (
-              <p className="mt-4 text-center text-sm text-zinc-600 uppercase tracking-wider">
-                {filteredProducts.length} resultado{filteredProducts.length !== 1 ? 's' : ''} encontrado{filteredProducts.length !== 1 ? 's' : ''}
-              </p>
-            )}
-          </div>
-        </div>
+        <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 pb-20 pt-16">
+          {searchTerm && (
+            <p className="mb-8 text-center text-sm text-zinc-600 uppercase tracking-wider">
+              {filteredProducts.length} resultado{filteredProducts.length !== 1 ? 's' : ''} encontrado{filteredProducts.length !== 1 ? 's' : ''}
+            </p>
+          )}
 
-        {/* Grid de Productos */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-20">
+          {/* Grid de Productos */}
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-20">
             <p className="text-zinc-400 text-lg uppercase tracking-wider">
               {searchTerm ? 'No se encontraron productos' : 'No hay productos disponibles'}
             </p>
@@ -150,6 +136,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

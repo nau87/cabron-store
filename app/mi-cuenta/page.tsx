@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import Header from '@/components/Header';
 import Link from 'next/link';
 
 interface Transaction {
@@ -90,7 +91,9 @@ export default function MiCuentaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black">
+    <>
+      <Header />
+      <div className="min-h-screen bg-white dark:bg-black">
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Link
@@ -192,6 +195,7 @@ export default function MiCuentaPage() {
           )}
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 }

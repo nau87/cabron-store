@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Product } from '@/types';
+import Header from '@/components/Header';
 import Image from 'next/image';
 import Link from 'next/link';
 import AddToCartButton from './AddToCartButton';
@@ -26,7 +27,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
+      <>
+        <Header />
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
             Producto no encontrado
@@ -38,12 +41,15 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             Volver a la tienda
           </Link>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <Header />
+      <div className="min-h-screen bg-white">
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-12">
         <Link 
           href="/"
@@ -118,6 +124,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 }

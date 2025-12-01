@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CartItem } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import Header from '@/components/Header';
 import Image from 'next/image';
 import Link from 'next/link';
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
@@ -260,7 +261,9 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
+    <>
+      <Header />
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-8">
           Finalizar Compra
@@ -479,6 +482,7 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 }

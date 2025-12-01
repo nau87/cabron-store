@@ -7,7 +7,12 @@ import { CartItem } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthModal from './AuthModal';
 
-export default function Header() {
+interface HeaderProps {
+  searchTerm?: string;
+  onSearchChange?: (value: string) => void;
+}
+
+export default function Header({ searchTerm, onSearchChange }: HeaderProps = {}) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -65,8 +70,8 @@ export default function Header() {
         </div>
         
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-3">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="relative h-10 w-40 sm:h-14 sm:w-56">
+          <div className="flex justify-between items-center gap-4">
+            <Link href="/" className="relative h-10 w-32 sm:h-12 sm:w-44 flex-shrink-0">
               <Image
                 src="/logo.png"
                 alt="Cabrón IND"
@@ -76,8 +81,26 @@ export default function Header() {
               />
             </Link>
             
+            {/* Buscador - visible solo si se pasan las props */}
+            {onSearchChange && (
+              <div className="flex-1 max-w-md lg:max-w-lg">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchTerm || ''}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    placeholder="Buscar..."
+                    className="w-full px-4 py-2 border-2 border-zinc-300 rounded-lg text-sm font-medium uppercase tracking-wide focus:outline-none focus:border-black transition-colors"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg opacity-50">
+                    🔍
+                  </span>
+                </div>
+              </div>
+            )}
+            
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-8">
+            <nav className="hidden lg:flex items-center gap-8 flex-shrink-0">
               <Link href="/" className="text-sm font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors">
                 SHOP
               </Link>
@@ -161,7 +184,7 @@ export default function Header() {
             </nav>
 
             {/* Mobile: Cart and Menu Button */}
-            <div className="lg:hidden flex items-center gap-4">
+            <div className="lg:hidden flex items-center gap-3 flex-shrink-0">
               <button
                 onClick={() => setIsCartOpen(!isCartOpen)}
                 className="relative"
