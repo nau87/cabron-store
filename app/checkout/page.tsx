@@ -367,8 +367,10 @@ export default function CheckoutPage() {
                       },
                     }}
                     customization={{
-                      paymentMethods: {
-                        maxInstallments: 12,
+                      visual: {
+                        style: {
+                          theme: 'default',
+                        },
                       },
                     }}
                     onSubmit={onSubmitPayment}
