@@ -366,6 +366,11 @@ export default function CheckoutPage() {
                         lastName: formData.customer_name.split(' ').slice(1).join(' ') || formData.customer_name.split(' ')[0],
                       },
                     }}
+                    customization={{
+                      paymentMethods: {
+                        maxInstallments: 12,
+                      },
+                    }}
                     onSubmit={onSubmitPayment}
                     onError={onErrorPayment}
                   />
