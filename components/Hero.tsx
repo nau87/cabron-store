@@ -30,15 +30,10 @@ export default function Hero() {
             className="drop-shadow-2xl"
           />
         </div>
-
-        <div className="flex gap-4 flex-wrap justify-center">
-          <span className="px-6 py-3 bg-white text-black font-bold text-lg tracking-wider">
-            30% OFF TRANSFERENCIA
-          </span>
-          <span className="px-6 py-3 bg-white text-black font-bold text-lg tracking-wider">
-            ENVÍO GRATIS +$150.000
-          </span>
-        </div>
+        
+        <p className="text-white text-4xl font-light tracking-[0.2em] uppercase" style={{ fontFamily: 'var(--font-bebas)' }}>
+          Spring / Summer Session
+        </p>
       </div>
     </div>
   );

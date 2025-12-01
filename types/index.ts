@@ -17,12 +17,14 @@ export interface Product {
 export interface CartItem {
   product: Product;
   quantity: number;
+  selectedSize?: string;
 }
 
 export interface OrderItem {
   product_id: string;
   quantity: number;
   price: number;
+  size?: string;
 }
 
 export interface Order {

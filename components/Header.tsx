@@ -23,8 +23,8 @@ export default function Header() {
   const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   const cartTotal = cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0);
 
-  const removeFromCart = (productId: string) => {
-    const updatedCart = cartItems.filter(item => item.product.id !== productId);
+  const removeFromCart = (productId: string, selectedSize?: string) => {
+    const updatedCart = cartItems.filter(item => !(item.product.id === productId && item.selectedSize === selectedSize));
     setCartItems(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
   };
@@ -32,11 +32,19 @@ export default function Header() {
   return (
     <>
       <header className="bg-white sticky top-0 z-50 border-b border-zinc-200">
-        {/* Barra de Promociones */}
-        <div className="bg-black text-white text-center py-2">
-          <p className="text-xs font-semibold uppercase tracking-wider">
-            30% OFF TRANSFERENCIA | ENVÍO GRATIS +$150.000 | 12 CUOTAS SIN INTERÉS
-          </p>
+        {/* Barra de Promociones con animación de marquesina */}
+        <div className="bg-black text-white text-center py-2 overflow-hidden">
+          <div className="animate-marquee whitespace-nowrap inline-block">
+            <p className="text-xs font-semibold uppercase tracking-wider inline-block px-8">
+              30% OFF TRANSFERENCIA | ENVÍO GRATIS +$150.000 | 12 CUOTAS SIN INTERÉS
+            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider inline-block px-8">
+              30% OFF TRANSFERENCIA | ENVÍO GRATIS +$150.000 | 12 CUOTAS SIN INTERÉS
+            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider inline-block px-8">
+              30% OFF TRANSFERENCIA | ENVÍO GRATIS +$150.000 | 12 CUOTAS SIN INTERÉS
+            </p>
+          </div>
         </div>
         
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-3">
@@ -93,6 +101,14 @@ export default function Header() {
 
               {user ? (
                 <div className="flex items-center gap-4">
+                  {!isAdmin && (
+                    <Link
+                      href="/mi-cuenta"
+                      className="text-xs font-semibold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      MI CUENTA
+                    </Link>
+                  )}
                   <span className="text-xs uppercase tracking-wider text-zinc-600">
                     {profile?.full_name || user.email}
                   </span>
@@ -137,16 +153,21 @@ export default function Header() {
             ) : (
               <>
                 <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
-                  {cartItems.map((item) => (
-                    <div key={item.product.id} className="flex justify-between items-center border-b pb-2">
+                  {cartItems.map((item, index) => (
+                    <div key={`${item.product.id}-${item.selectedSize || 'no-size'}-${index}`} className="flex justify-between items-center border-b pb-2">
                       <div className="flex-1">
                         <p className="font-medium text-sm">{item.product.name}</p>
+                        {item.selectedSize && (
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                            Talle: {item.selectedSize}
+                          </p>
+                        )}
                         <p className="text-xs text-zinc-500">
                           ${item.product.price} x {item.quantity}
                         </p>
                       </div>
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => removeFromCart(item.product.id, item.selectedSize)}
                         className="text-red-500 text-sm ml-2"
                       >
                         ✕

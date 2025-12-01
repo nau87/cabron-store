@@ -26,7 +26,7 @@ export default async function Home() {
       {/* Hero Banner */}
       <Hero />
 
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 pb-20">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 pb-20 pt-16">
         {/* Categorías */}
         <div className="mb-16">
           <div className="flex gap-4 overflow-x-auto pb-4 mb-12 justify-center">
@@ -73,7 +73,7 @@ export default async function Home() {
           <p className="text-lg font-light mb-8 uppercase tracking-wide">
             Recibí nuestras novedades y descuentos exclusivos
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto">
+          <div className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto mb-16">
             <input
               type="email"
               placeholder="Tu email"
@@ -82,6 +82,44 @@ export default async function Home() {
             <button className="px-10 py-4 bg-white text-black font-black uppercase tracking-wider hover:bg-zinc-200 transition-colors">
               ENVIAR
             </button>
+          </div>
+
+          {/* Contacto */}
+          <div className="border-t border-zinc-700 pt-12">
+            <h3 className="text-2xl font-bold uppercase tracking-wider mb-8">
+              CONTACTO
+            </h3>
+            <div className="grid md:grid-cols-3 gap-8 text-left md:text-center">
+              <div>
+                <p className="text-zinc-400 uppercase text-xs font-semibold mb-2">Instagram</p>
+                <a 
+                  href="https://instagram.com/cabron_indumentaria" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-white hover:text-zinc-300 transition-colors font-medium"
+                >
+                  @cabron_indumentaria
+                </a>
+              </div>
+              <div>
+                <p className="text-zinc-400 uppercase text-xs font-semibold mb-2">WhatsApp</p>
+                <a 
+                  href="https://wa.me/542302311826" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-white hover:text-zinc-300 transition-colors font-medium"
+                >
+                  +54 9 2302 31-1826
+                </a>
+              </div>
+              <div>
+                <p className="text-zinc-400 uppercase text-xs font-semibold mb-2">Dirección</p>
+                <p className="text-white font-medium">
+                  9 de Julio 761<br />
+                  Trenel, La Pampa
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -23,6 +23,9 @@ export default function CheckoutPage() {
     customer_name: '',
     customer_email: user?.email || '',
     customer_phone: '',
+    city: '',
+    province: '',
+    postal_code: '',
     shipping_address: ''
   });
 
@@ -34,9 +37,33 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    if (user?.email) {
-      setFormData(prev => ({ ...prev, customer_email: user.email! }));
-    }
+    const loadUserData = async () => {
+      if (user) {
+        // Cargar datos del perfil del usuario
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('full_name, email, phone')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          setFormData(prev => ({
+            ...prev,
+            customer_name: profile.full_name || '',
+            customer_email: profile.email || user.email || '',
+            customer_phone: profile.phone || user.raw_user_meta_data?.phone || '',
+          }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            customer_email: user.email || '',
+            customer_phone: user.raw_user_meta_data?.phone || '',
+          }));
+        }
+      }
+    };
+
+    loadUserData();
   }, [user]);
 
   const cartTotal = cartItems.reduce(
@@ -80,6 +107,9 @@ export default function CheckoutPage() {
             customer_name: formData.customer_name,
             customer_phone: formData.customer_phone,
             shipping_address: formData.shipping_address,
+            city: formData.city,
+            province: formData.province,
+            postal_code: formData.postal_code,
             user_id: user?.id || null,
           },
         }),
@@ -102,8 +132,11 @@ export default function CheckoutPage() {
       const orderItems = cartItems.map(item => ({
         product_id: item.product.id,
         quantity: item.quantity,
-        price: item.product.price
+        price: item.product.price,
+        size: item.selectedSize
       }));
+
+      const fullAddress = `${formData.shipping_address}, ${formData.city}, ${formData.province}, CP: ${formData.postal_code}`;
 
       await supabase
         .from('orders')
@@ -112,7 +145,7 @@ export default function CheckoutPage() {
             customer_name: formData.customer_name,
             customer_email: formData.customer_email,
             customer_phone: formData.customer_phone,
-            shipping_address: formData.shipping_address,
+            shipping_address: fullAddress,
             total: cartTotal,
             status: 'pending',
             items: orderItems,
@@ -131,7 +164,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const onSubmitPayment = async (formData: any) => {
+  const onSubmitPayment = async (paymentFormData: any) => {
     try {
       const response = await fetch('/api/mercadopago/process-payment', {
         method: 'POST',
@@ -139,18 +172,21 @@ export default function CheckoutPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
+          ...paymentFormData,
           amount: cartTotal,
           description: `Compra en Cabrón Store - ${cartItems.length} producto(s)`,
           payer: {
-            email: formData.payer.email,
-            first_name: formData.payer.first_name || formData.customer_name.split(' ')[0],
-            last_name: formData.payer.last_name || formData.customer_name.split(' ').slice(1).join(' '),
+            email: paymentFormData.payer.email,
+            first_name: paymentFormData.payer.first_name || formData.customer_name.split(' ')[0],
+            last_name: paymentFormData.payer.last_name || formData.customer_name.split(' ').slice(1).join(' '),
           },
           metadata: {
             customer_name: formData.customer_name,
             customer_phone: formData.customer_phone,
             shipping_address: formData.shipping_address,
+            city: formData.city,
+            province: formData.province,
+            postal_code: formData.postal_code,
             user_id: user?.id || null,
           },
         }),
@@ -252,6 +288,11 @@ export default function CheckoutPage() {
                     <h3 className="font-semibold text-zinc-900 dark:text-white">
                       {item.product.name}
                     </h3>
+                    {item.selectedSize && (
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        Talle: {item.selectedSize}
+                      </p>
+                    )}
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Cantidad: {item.quantity}
                     </p>
@@ -325,18 +366,65 @@ export default function CheckoutPage() {
                 />
               </div>
 
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                    Ciudad *
+                  </label>
+                  <input
+                    type="text"
+                    name="city"
+                    required
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                    placeholder="Buenos Aires"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                    Provincia *
+                  </label>
+                  <input
+                    type="text"
+                    name="province"
+                    required
+                    value={formData.province}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                    placeholder="Buenos Aires"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Código Postal *
+                </label>
+                <input
+                  type="text"
+                  name="postal_code"
+                  required
+                  value={formData.postal_code}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                  placeholder="1234"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                   Dirección de Envío *
                 </label>
-                <textarea
+                <input
+                  type="text"
                   name="shipping_address"
                   required
                   value={formData.shipping_address}
                   onChange={handleInputChange}
-                  rows={3}
                   className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
-                  placeholder="Calle, número, piso, depto, localidad, provincia, CP"
+                  placeholder="Calle, número, piso, depto"
                 />
               </div>
 
