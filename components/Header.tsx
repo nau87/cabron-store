@@ -11,6 +11,7 @@ export default function Header() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
 
   useEffect(() => {
@@ -49,7 +50,7 @@ export default function Header() {
         
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-3">
           <div className="flex justify-between items-center">
-            <Link href="/" className="relative h-14 w-56">
+            <Link href="/" className="relative h-10 w-40 sm:h-14 sm:w-56">
               <Image
                 src="/logo.png"
                 alt="Cabrón IND"
@@ -59,7 +60,8 @@ export default function Header() {
               />
             </Link>
             
-            <nav className="flex items-center gap-8">
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-8">
               <Link href="/" className="text-sm font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors">
                 SHOP
               </Link>
@@ -138,14 +140,125 @@ export default function Header() {
                     {cartItemsCount}
                   </span>
                 )}
-              </button>
+              )}
             </nav>
+
+            {/* Mobile: Cart and Menu Button */}
+            <div className="lg:hidden flex items-center gap-4">
+              <button
+                onClick={() => setIsCartOpen(!isCartOpen)}
+                className="relative"
+              >
+                <span className="text-2xl">🛒</span>
+                {cartItemsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartItemsCount}
+                  </span>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-2xl"
+              >
+                {isMobileMenuOpen ? '✕' : '☰'}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <div className="lg:hidden mt-4 pb-4 border-t pt-4 space-y-4">
+              <Link 
+                href="/" 
+                className="block text-sm font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                SHOP
+              </Link>
+
+              {isAdmin && (
+                <>
+                  <Link 
+                    href="/admin" 
+                    className="block text-sm font-semibold uppercase tracking-wider text-orange-600 hover:text-orange-700 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    PRODUCTOS
+                  </Link>
+                  <Link 
+                    href="/admin/orders" 
+                    className="block text-sm font-semibold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    PEDIDOS
+                  </Link>
+                  <Link 
+                    href="/admin/inventory" 
+                    className="block text-sm font-semibold uppercase tracking-wider text-purple-600 hover:text-purple-700 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    INVENTARIO
+                  </Link>
+                  <Link 
+                    href="/admin/cuentas-corrientes" 
+                    className="block text-sm font-semibold uppercase tracking-wider text-yellow-600 hover:text-yellow-700 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    CTAS CTE
+                  </Link>
+                  <Link 
+                    href="/admin/pos" 
+                    className="block text-sm font-semibold uppercase tracking-wider text-green-600 hover:text-green-700 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    POS
+                  </Link>
+                </>
+              )}
+
+              {user ? (
+                <div className="space-y-4 border-t pt-4">
+                  {!isAdmin && (
+                    <Link
+                      href="/mi-cuenta"
+                      className="block text-sm font-semibold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      MI CUENTA
+                    </Link>
+                  )}
+                  <p className="text-xs uppercase tracking-wider text-zinc-600">
+                    {profile?.full_name || user.email}
+                  </p>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block text-sm font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors"
+                  >
+                    SALIR
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsAuthModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="block text-sm font-semibold uppercase tracking-wider hover:text-zinc-600 transition-colors"
+                >
+                  INGRESAR
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Cart Dropdown */}
         {isCartOpen && (
-          <div className="absolute right-4 mt-2 w-80 bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-4 z-50">
+          <div className="absolute right-4 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-md bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-4 z-50">
             <h3 className="text-lg font-semibold mb-4">Carrito de Compras</h3>
             
             {cartItems.length === 0 ? (
