@@ -1,7 +1,10 @@
+'use client';
+
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/types';
 import Hero from '@/components/Hero';
+import { useState, useEffect } from 'react';
 
 async function getProducts() {
   const { data: products, error } = await supabase
@@ -18,8 +21,30 @@ async function getProducts() {
   return products as Product[];
 }
 
-export default async function Home() {
-  const products = await getProducts();
+export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    getProducts().then(data => {
+      setProducts(data);
+      setFilteredProducts(data);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [searchTerm, products]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -27,37 +52,39 @@ export default async function Home() {
       <Hero />
 
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 pb-20 pt-16">
-        {/* Categorías */}
+        {/* Buscador */}
         <div className="mb-16">
-          <div className="flex gap-4 overflow-x-auto pb-4 mb-12 justify-center">
-            <button className="px-8 py-3 border-2 border-black font-bold text-sm uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300 whitespace-nowrap">
-              TODO
-            </button>
-            <button className="px-8 py-3 border-2 border-black font-bold text-sm uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300 whitespace-nowrap">
-              REMERAS
-            </button>
-            <button className="px-8 py-3 border-2 border-black font-bold text-sm uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300 whitespace-nowrap">
-              PANTALONES
-            </button>
-            <button className="px-8 py-3 border-2 border-black font-bold text-sm uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300 whitespace-nowrap">
-              BUZOS
-            </button>
-            <button className="px-8 py-3 border-2 border-black font-bold text-sm uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300 whitespace-nowrap">
-              CAMISAS
-            </button>
+          <div className="max-w-2xl mx-auto">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar productos..."
+                className="w-full px-6 py-4 border-2 border-black font-medium text-lg uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-black"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl">
+                🔍
+              </span>
+            </div>
+            {searchTerm && (
+              <p className="mt-4 text-center text-sm text-zinc-600 uppercase tracking-wider">
+                {filteredProducts.length} resultado{filteredProducts.length !== 1 ? 's' : ''} encontrado{filteredProducts.length !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Grid de Productos */}
-        {products.length === 0 ? (
+        {filteredProducts.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-zinc-400 text-lg uppercase tracking-wider">
-              No hay productos disponibles
+              {searchTerm ? 'No se encontraron productos' : 'No hay productos disponibles'}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 md:gap-10">
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
