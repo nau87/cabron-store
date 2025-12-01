@@ -31,10 +31,6 @@ export default function Hero() {
           />
         </div>
 
-        <p className="text-2xl text-white mb-8 max-w-2xl font-light tracking-wide">
-          Indumentaria masculina con actitud
-        </p>
-
         <div className="flex gap-4 flex-wrap justify-center">
           <span className="px-6 py-3 bg-white text-black font-bold text-lg tracking-wider">
             30% OFF TRANSFERENCIA

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import Link from 'next/link';
-import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
+import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 
 // Inicializar Mercado Pago
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
@@ -17,7 +17,7 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [showPaymentBrick, setShowPaymentBrick] = useState(false);
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     customer_name: '',
@@ -54,30 +54,27 @@ export default function CheckoutPage() {
   const createPreference = async () => {
     try {
       const items = cartItems.map(item => ({
+        id: item.product.id,
         title: item.product.name,
         quantity: item.quantity,
         unit_price: item.product.price,
-        currency_id: 'ARS',
       }));
 
-      const response = await fetch('/api/mercadopago/create-preference', {
+      const response = await fetch('/api/mercadopago/create-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          amount: cartTotal,
           items,
           payer: {
-            name: formData.customer_name,
+            first_name: formData.customer_name.split(' ')[0],
+            last_name: formData.customer_name.split(' ').slice(1).join(' ') || formData.customer_name.split(' ')[0],
             email: formData.customer_email,
             phone: {
               number: formData.customer_phone,
             },
-          },
-          back_urls: {
-            success: `${window.location.origin}/checkout/success`,
-            failure: `${window.location.origin}/checkout/failure`,
-            pending: `${window.location.origin}/checkout/pending`,
           },
           metadata: {
             customer_name: formData.customer_name,
@@ -89,9 +86,9 @@ export default function CheckoutPage() {
       });
 
       const data = await response.json();
-      return data.preferenceId;
+      return data;
     } catch (error) {
-      console.error('Error creating preference:', error);
+      console.error('Error creating payment:', error);
       throw error;
     }
   };
@@ -101,10 +98,6 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      // Crear preferencia de Mercado Pago
-      const prefId = await createPreference();
-      setPreferenceId(prefId);
-
       // Guardar orden pendiente en Supabase
       const orderItems = cartItems.map(item => ({
         product_id: item.product.id,
@@ -127,12 +120,67 @@ export default function CheckoutPage() {
           }
         ]);
 
+      // Mostrar el Payment Brick
+      setShowPaymentBrick(true);
+
     } catch (error) {
       console.error('Error:', error);
       alert('Hubo un error al procesar tu pedido. Por favor intenta de nuevo.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const onSubmitPayment = async (formData: any) => {
+    try {
+      const response = await fetch('/api/mercadopago/process-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          amount: cartTotal,
+          description: `Compra en Cabrón Store - ${cartItems.length} producto(s)`,
+          payer: {
+            email: formData.payer.email,
+            first_name: formData.payer.first_name || formData.customer_name.split(' ')[0],
+            last_name: formData.payer.last_name || formData.customer_name.split(' ').slice(1).join(' '),
+          },
+          metadata: {
+            customer_name: formData.customer_name,
+            customer_phone: formData.customer_phone,
+            shipping_address: formData.shipping_address,
+            user_id: user?.id || null,
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.status === 'approved') {
+        // Limpiar carrito
+        localStorage.removeItem('cart');
+        setOrderPlaced(true);
+      } else if (result.status === 'in_process' || result.status === 'pending') {
+        alert('Tu pago está siendo procesado. Te notificaremos cuando se apruebe.');
+        localStorage.removeItem('cart');
+        setOrderPlaced(true);
+      } else {
+        alert('Hubo un problema con el pago. Por favor intenta de nuevo.');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      alert('Error al procesar el pago');
+      throw error;
+    }
+  };
+
+  const onErrorPayment = (error: any) => {
+    console.error('Payment error:', error);
+    alert('Error en el pago. Por favor intenta de nuevo.');
   };
 
   if (orderPlaced) {
@@ -292,7 +340,7 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {!preferenceId ? (
+              {!showPaymentBrick ? (
                 <button
                   type="submit"
                   disabled={loading}
@@ -306,11 +354,20 @@ export default function CheckoutPage() {
                 </button>
               ) : (
                 <div className="mt-4">
-                  <p className="text-zinc-600 dark:text-zinc-400 text-center mb-4">
-                    Haz clic en el botón de Mercado Pago para completar tu pago
+                  <p className="text-zinc-900 dark:text-white font-semibold text-center mb-4">
+                    Completa tu pago
                   </p>
-                  <Wallet
-                    initialization={{ preferenceId }}
+                  <Payment
+                    initialization={{
+                      amount: cartTotal,
+                      payer: {
+                        email: formData.customer_email,
+                        firstName: formData.customer_name.split(' ')[0],
+                        lastName: formData.customer_name.split(' ').slice(1).join(' ') || formData.customer_name.split(' ')[0],
+                      },
+                    }}
+                    onSubmit={onSubmitPayment}
+                    onError={onErrorPayment}
                   />
                 </div>
               )}

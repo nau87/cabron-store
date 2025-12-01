@@ -49,6 +49,8 @@ export default function POSPage() {
   const [returnSize, setReturnSize] = useState('');
   const [returnQuantity, setReturnQuantity] = useState(1);
   const [processingReturn, setProcessingReturn] = useState(false);
+  const [isAccountSale, setIsAccountSale] = useState(false);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -81,12 +83,18 @@ export default function POSPage() {
 
   const loadCustomers = async () => {
     const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('role', 'customer');
+      .from('customer_balances')
+      .select('customer_id, full_name, email, balance')
+      .order('full_name');
 
     if (!error && data) {
-      setRegisteredCustomers(data);
+      // Mapear los datos para que coincidan con la estructura esperada
+      const mappedCustomers = data.map(c => ({
+        id: c.customer_id,
+        full_name: c.full_name,
+        email: c.email,
+      }));
+      setRegisteredCustomers(mappedCustomers);
     }
   };
 
@@ -173,6 +181,12 @@ export default function POSPage() {
       return;
     }
 
+    // Si es venta a cuenta corriente, el cliente debe estar registrado
+    if (isAccountSale && !customer.id) {
+      alert('Para venta a cuenta corriente debes seleccionar un cliente registrado');
+      return;
+    }
+
     setProcessingSale(true);
 
     try {
@@ -195,7 +209,7 @@ export default function POSPage() {
       const discountAmount = subtotal - total;
 
       // Crear venta
-      const { error } = await supabase
+      const { data: saleData, error: saleError } = await supabase
         .from('local_sales')
         .insert([
           {
@@ -209,21 +223,43 @@ export default function POSPage() {
             discount_amount: discountAmount,
             discount_percentage: generalDiscount,
             total,
-            payment_method: paymentMethod,
+            payment_method: isAccountSale ? 'cuenta_corriente' : paymentMethod,
             admin_user_id: user?.id,
           },
-        ]);
+        ])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (saleError) throw saleError;
+
+      // Si es venta a cuenta corriente, registrar en transacciones
+      if (isAccountSale && customer.id && saleData) {
+        const { error: accountError } = await supabase.rpc('register_sale_to_account', {
+          p_customer_id: customer.id,
+          p_sale_id: saleData.id,
+          p_amount: total,
+          p_admin_id: user?.id,
+        });
+
+        if (accountError) {
+          console.error('Error registrando en cuenta corriente:', accountError);
+          alert('⚠️ Venta completada pero error al registrar en cuenta corriente');
+        }
+      }
 
       // Limpiar carrito
       setCart([]);
       setCustomer({ name: 'Cliente General' });
       setGeneralDiscount(0);
       setPaymentMethod('efectivo');
+      setIsAccountSale(false);
       loadProducts(); // Recargar productos para actualizar stock
 
-      alert(`✅ Venta #${saleNumber} completada exitosamente!\nTotal: $${total.toFixed(2)}`);
+      const message = isAccountSale 
+        ? `✅ Venta #${saleNumber} a cuenta corriente!\nTotal: $${total.toFixed(2)}`
+        : `✅ Venta #${saleNumber} completada!\nTotal: $${total.toFixed(2)}`;
+      
+      alert(message);
     } catch (error) {
       console.error('Error:', error);
       alert('Error al procesar la venta');
@@ -478,18 +514,45 @@ export default function POSPage() {
               />
             </div>
 
-            {/* Método de Pago */}
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700"
-            >
-              <option value="efectivo">💵 Efectivo</option>
-              <option value="tarjeta_debito">💳 Tarjeta Débito</option>
-              <option value="tarjeta_credito">💳 Tarjeta Crédito</option>
-              <option value="transferencia">🏦 Transferencia</option>
-              <option value="mercadopago">📱 Mercado Pago</option>
-            </select>
+            {/* Cuenta Corriente */}
+            <div className="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <input
+                type="checkbox"
+                id="accountSale"
+                checked={isAccountSale}
+                onChange={(e) => {
+                  setIsAccountSale(e.target.checked);
+                  if (e.target.checked && customer.name === 'Cliente General') {
+                    alert('Debes seleccionar un cliente registrado para venta a cuenta corriente');
+                    setShowCustomerModal(true);
+                  }
+                }}
+                className="w-5 h-5 rounded border-yellow-300"
+              />
+              <label htmlFor="accountSale" className="flex-1 text-sm font-medium cursor-pointer">
+                📋 Venta a Cuenta Corriente
+                {isAccountSale && !customer.id && (
+                  <span className="block text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                    ⚠️ Selecciona un cliente registrado
+                  </span>
+                )}
+              </label>
+            </div>
+
+            {/* Método de Pago (solo si no es cuenta corriente) */}
+            {!isAccountSale && (
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700"
+              >
+                <option value="efectivo">💵 Efectivo</option>
+                <option value="tarjeta_debito">💳 Tarjeta Débito</option>
+                <option value="tarjeta_credito">💳 Tarjeta Crédito</option>
+                <option value="transferencia">🏦 Transferencia</option>
+                <option value="mercadopago">📱 Mercado Pago</option>
+              </select>
+            )}
 
             {/* Totales */}
             <div className="space-y-1 pt-2 border-t border-zinc-200 dark:border-zinc-700">
@@ -535,38 +598,68 @@ export default function POSPage() {
               </button>
             </div>
 
-            <div className="space-y-3 mb-4">
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="🔍 Buscar cliente por nombre o email..."
+                value={customerSearchTerm}
+                onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
               <button
                 onClick={() => {
                   setCustomer({ name: 'Cliente General' });
                   setShowCustomerModal(false);
+                  setCustomerSearchTerm('');
                 }}
                 className="w-full p-3 text-left bg-zinc-100 dark:bg-zinc-700 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600"
               >
                 Cliente General
               </button>
 
-              {registeredCustomers.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => {
-                    setCustomer({
-                      id: c.id,
-                      name: c.full_name || c.email,
-                      email: c.email,
-                    });
-                    setShowCustomerModal(false);
-                  }}
-                  className="w-full p-3 text-left bg-zinc-100 dark:bg-zinc-700 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600"
-                >
-                  <p className="font-semibold">{c.full_name || c.email}</p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">{c.email}</p>
-                </button>
-              ))}
+              {registeredCustomers
+                .filter(c => {
+                  const searchLower = customerSearchTerm.toLowerCase();
+                  const name = (c.full_name || '').toLowerCase();
+                  const email = (c.email || '').toLowerCase();
+                  return name.includes(searchLower) || email.includes(searchLower);
+                })
+                .map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setCustomer({
+                        id: c.id,
+                        name: c.full_name || c.email,
+                        email: c.email,
+                      });
+                      setShowCustomerModal(false);
+                      setCustomerSearchTerm('');
+                    }}
+                    className="w-full p-3 text-left bg-zinc-100 dark:bg-zinc-700 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600"
+                  >
+                    <p className="font-semibold">{c.full_name || c.email}</p>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">{c.email}</p>
+                  </button>
+                ))
+              }
+
+              {registeredCustomers.filter(c => {
+                const searchLower = customerSearchTerm.toLowerCase();
+                const name = (c.full_name || '').toLowerCase();
+                const email = (c.email || '').toLowerCase();
+                return name.includes(searchLower) || email.includes(searchLower);
+              }).length === 0 && customerSearchTerm && (
+                <p className="text-center text-zinc-500 py-4">No se encontraron clientes</p>
+              )}
             </div>
 
             <div className="border-t pt-4">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">O crear nuevo cliente:</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">O crear cliente temporal:</p>
               <input
                 type="text"
                 placeholder="Nombre del cliente"
@@ -575,6 +668,7 @@ export default function POSPage() {
                   if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                     setCustomer({ name: e.currentTarget.value.trim() });
                     setShowCustomerModal(false);
+                    setCustomerSearchTerm('');
                   }
                 }}
               />

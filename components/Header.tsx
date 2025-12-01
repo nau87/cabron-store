@@ -39,9 +39,9 @@ export default function Header() {
           </p>
         </div>
         
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-5">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-3">
           <div className="flex justify-between items-center">
-            <Link href="/" className="relative h-20 w-80">
+            <Link href="/" className="relative h-14 w-56">
               <Image
                 src="/logo.png"
                 alt="Cabrón IND"
@@ -75,6 +75,12 @@ export default function Header() {
                     className="text-sm font-semibold uppercase tracking-wider text-purple-600 hover:text-purple-700 transition-colors"
                   >
                     INVENTARIO
+                  </Link>
+                  <Link 
+                    href="/admin/cuentas-corrientes" 
+                    className="text-sm font-semibold uppercase tracking-wider text-yellow-600 hover:text-yellow-700 transition-colors"
+                  >
+                    CTAS CTE
                   </Link>
                   <Link 
                     href="/admin/pos" 

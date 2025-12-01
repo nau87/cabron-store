@@ -14,6 +14,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
@@ -33,7 +34,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         onClose();
         router.refresh();
       } else {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(email, password, fullName, phone);
         if (error) throw error;
         setError('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.');
         setTimeout(() => {
@@ -65,18 +66,34 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Nombre Completo
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
-                required={!isLogin}
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                  required={!isLogin}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Teléfono
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Ej: +54 9 11 1234-5678"
+                  className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                  required={!isLogin}
+                />
+              </div>
+            </>
           )}
 
           <div>
