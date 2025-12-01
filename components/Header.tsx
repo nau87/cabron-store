@@ -140,7 +140,7 @@ export default function Header() {
                     {cartItemsCount}
                   </span>
                 )}
-              )}
+              </button>
             </nav>
 
             {/* Mobile: Cart and Menu Button */}
