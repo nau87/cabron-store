@@ -56,12 +56,11 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  INSERT INTO public.user_profiles (id, full_name, email, phone, role)
+  INSERT INTO public.user_profiles (id, full_name, email, role)
   VALUES (
     NEW.id,
     NEW.raw_user_meta_data->>'full_name',
     NEW.email,
-    NEW.raw_user_meta_data->>'phone',
     COALESCE(NEW.raw_user_meta_data->>'role', 'customer')
   );
   RETURN NEW;
@@ -76,12 +75,11 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 -- 8. Insertar perfiles para usuarios existentes que no tengan perfil
-INSERT INTO public.user_profiles (id, full_name, email, phone, role)
+INSERT INTO public.user_profiles (id, full_name, email, role)
 SELECT 
   au.id,
   au.raw_user_meta_data->>'full_name',
   au.email,
-  au.raw_user_meta_data->>'phone',
   COALESCE(au.raw_user_meta_data->>'role', 'customer')
 FROM auth.users au
 LEFT JOIN public.user_profiles up ON au.id = up.id
