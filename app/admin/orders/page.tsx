@@ -426,6 +426,18 @@ export default function OrdersPage() {
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">Teléfono</p>
                   <p className="font-medium">{selectedOrder.customer_phone}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Ciudad</p>
+                  <p className="font-medium">{selectedOrder.city || 'No especificada'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Provincia</p>
+                  <p className="font-medium">{selectedOrder.province || 'No especificada'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">Código Postal</p>
+                  <p className="font-medium">{selectedOrder.postal_code || 'No especificado'}</p>
+                </div>
                 <div className="col-span-2">
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">Dirección de Envío</p>
                   <p className="font-medium">{selectedOrder.shipping_address}</p>
