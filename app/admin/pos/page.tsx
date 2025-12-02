@@ -14,6 +14,7 @@ interface Product {
   stock: number;
   image_url: string;
   category: string;
+  sku?: string;
   size?: string;
   color?: string;
 }
@@ -52,6 +53,9 @@ export default function POSPage() {
   const [processingReturn, setProcessingReturn] = useState(false);
   const [isAccountSale, setIsAccountSale] = useState(false);
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [selectedProductForSize, setSelectedProductForSize] = useState<Product | null>(null);
+  const [selectedSize, setSelectedSize] = useState('');
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -117,6 +121,19 @@ export default function POSPage() {
   };
 
   const addToCart = (product: Product) => {
+    // Si el producto tiene talle, mostrar modal para seleccionarlo
+    if (product.size) {
+      setSelectedProductForSize(product);
+      setSelectedSize(product.size);
+      setShowSizeModal(true);
+      return;
+    }
+
+    // Si no tiene talle, agregar directamente
+    addProductToCart(product);
+  };
+
+  const addProductToCart = (product: Product) => {
     const existingIndex = cart.findIndex(item => item.product.id === product.id);
 
     if (existingIndex > -1) {
@@ -130,6 +147,51 @@ export default function POSPage() {
     } else {
       setCart([...cart, { product, quantity: 1, discount: 0 }]);
     }
+  };
+
+  const confirmAddToCart = async () => {
+    if (!selectedProductForSize || !selectedSize) {
+      alert('Selecciona un talle');
+      return;
+    }
+
+    // Obtener el SKU base del producto (sin el talle)
+    // Si el producto tiene SKU, buscar por SKU base y talle
+    // Si no tiene SKU, usar el nombre del producto
+    let query = supabase
+      .from('products')
+      .select('*')
+      .eq('size', selectedSize)
+      .gt('stock', 0);
+
+    // Si el producto tiene SKU, usarlo para la búsqueda
+    if (selectedProductForSize.sku) {
+      // Extraer SKU base (antes del último guión si existe)
+      const skuParts = selectedProductForSize.sku.split('-');
+      if (skuParts.length > 1) {
+        // Remover el último elemento (que sería el talle)
+        const baseSkuPattern = skuParts.slice(0, -1).join('-');
+        query = query.like('sku', `${baseSkuPattern}%`);
+      } else {
+        query = query.like('sku', `${selectedProductForSize.sku}%`);
+      }
+    } else {
+      // Si no hay SKU, buscar por nombre
+      query = query.eq('name', selectedProductForSize.name);
+    }
+
+    const { data: productWithSize, error } = await query.single();
+
+    if (error || !productWithSize) {
+      alert(`No hay stock disponible del talle ${selectedSize}`);
+      console.error('Error buscando producto:', error);
+      return;
+    }
+
+    addProductToCart(productWithSize);
+    setShowSizeModal(false);
+    setSelectedProductForSize(null);
+    setSelectedSize('');
   };
 
   const updateQuantity = (index: number, quantity: number) => {
@@ -288,7 +350,7 @@ export default function POSPage() {
     setProcessingReturn(true);
 
     try {
-      // Buscar producto por SKU y talle
+      // Buscar producto por SKU y talle (SIN filtro de stock, puede estar en 0)
       const { data: products, error: searchError } = await supabase
         .from('products')
         .select('*')
@@ -754,6 +816,80 @@ export default function POSPage() {
               >
                 {processingReturn ? 'Procesando...' : 'Procesar Devolución'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Selección de Talle */}
+      {showSizeModal && selectedProductForSize && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-800 rounded-lg max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
+                👕 Seleccionar Talle
+              </h2>
+              <button
+                onClick={() => {
+                  setShowSizeModal(false);
+                  setSelectedProductForSize(null);
+                  setSelectedSize('');
+                }}
+                className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-zinc-100 dark:bg-zinc-700 rounded-lg p-4">
+                <p className="font-semibold text-zinc-900 dark:text-white">
+                  {selectedProductForSize.name}
+                </p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {selectedProductForSize.category}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Talle Disponible *
+                </label>
+                <input
+                  type="text"
+                  value={selectedSize}
+                  onChange={(e) => setSelectedSize(e.target.value.toUpperCase())}
+                  placeholder="Ej: XL, M, L, S"
+                  className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white text-center text-lg font-semibold"
+                  autoFocus
+                />
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  ℹ️ Se verificará el stock disponible del talle ingresado antes de agregarlo al carrito.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowSizeModal(false);
+                    setSelectedProductForSize(null);
+                    setSelectedSize('');
+                  }}
+                  className="flex-1 bg-zinc-300 hover:bg-zinc-400 text-zinc-900 py-3 rounded-lg font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmAddToCart}
+                  disabled={!selectedSize.trim()}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-zinc-400 text-white py-3 rounded-lg font-bold transition-colors"
+                >
+                  Agregar al Carrito
+                </button>
+              </div>
             </div>
           </div>
         </div>
