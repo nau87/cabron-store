@@ -24,6 +24,7 @@ interface POSItem {
   product: Product;
   quantity: number;
   discount: number; // descuento por unidad en porcentaje
+  variant_id?: string; // ID de la variante si el producto tiene talle
 }
 
 interface Customer {
@@ -143,22 +144,13 @@ export default function POSPage() {
   const loadAvailableSizes = async (product: Product) => {
     setLoadingSizes(true);
     try {
-      // Buscar todos los productos con el mismo SKU base o nombre
-      let query = supabase
-        .from('products')
+      // Buscar todas las variantes del producto
+      const { data, error } = await supabase
+        .from('product_variants')
         .select('id, size, stock')
-        .gt('stock', 0);
-
-      if (product.sku) {
-        // Extraer SKU base (sin el talle)
-        const skuParts = product.sku.split('-');
-        const baseSku = skuParts.length > 1 ? skuParts.slice(0, -1).join('-') : product.sku;
-        query = query.like('sku', `${baseSku}%`);
-      } else {
-        query = query.eq('name', product.name);
-      }
-
-      const { data, error } = await query;
+        .eq('product_id', product.id)
+        .gt('stock', 0)
+        .order('size');
 
       if (error) {
         console.error('Error loading sizes:', error);
@@ -166,10 +158,10 @@ export default function POSPage() {
         return;
       }
 
-      const sizes = (data || []).map(p => ({
-        size: p.size || '',
-        stock: p.stock,
-        productId: p.id,
+      const sizes = (data || []).map(v => ({
+        size: v.size || '',
+        stock: v.stock,
+        productId: v.id, // Ahora es el ID de la variante
       })).filter(s => s.size);
 
       setAvailableSizes(sizes);
@@ -203,27 +195,57 @@ export default function POSPage() {
       return;
     }
 
-    // Buscar el producto específico del talle seleccionado
+    // Buscar la variante del talle seleccionado
     const sizeInfo = availableSizes.find(s => s.size === selectedSize);
     if (!sizeInfo) {
       alert(`No hay stock disponible del talle ${selectedSize}`);
       return;
     }
 
-    // Obtener el producto completo
-    const { data: productWithSize, error } = await supabase
-      .from('products')
+    // Obtener la variante completa
+    const { data: variant, error } = await supabase
+      .from('product_variants')
       .select('*')
       .eq('id', sizeInfo.productId)
       .single();
 
-    if (error || !productWithSize) {
-      alert(`Error al cargar el producto`);
+    if (error || !variant) {
+      alert(`Error al cargar la variante`);
       console.error('Error:', error);
       return;
     }
 
-    addProductToCart(productWithSize);
+    // Crear un producto temporal con los datos de la variante
+    const productWithVariant = {
+      ...selectedProductForSize,
+      size: variant.size,
+      stock: variant.stock,
+      sku: variant.sku || selectedProductForSize.sku,
+    };
+
+    // Agregar al carrito con el variant_id
+    const existingIndex = cart.findIndex(item => 
+      item.product.id === selectedProductForSize.id && 
+      item.variant_id === variant.id
+    );
+
+    if (existingIndex > -1) {
+      const newCart = [...cart];
+      if (newCart[existingIndex].quantity < variant.stock) {
+        newCart[existingIndex].quantity += 1;
+        setCart(newCart);
+      } else {
+        alert('No hay más stock disponible');
+      }
+    } else {
+      setCart([...cart, { 
+        product: productWithVariant, 
+        quantity: 1, 
+        discount: 0,
+        variant_id: variant.id 
+      }]);
+    }
+
     setShowSizeModal(false);
     setSelectedProductForSize(null);
     setSelectedSize('');
@@ -293,10 +315,35 @@ export default function POSPage() {
       const { data: saleNumberData } = await supabase.rpc('generate_sale_number');
       const saleNumber = saleNumberData || `SALE-${Date.now()}`;
 
+      // Decrementar stock de variantes (si aplica) o productos
+      for (const item of cart) {
+        if (item.variant_id) {
+          // Decrementar stock de variante
+          const success = await supabase.rpc('decrement_variant_stock', {
+            p_variant_id: item.variant_id,
+            p_quantity: item.quantity
+          });
+          
+          if (!success) {
+            throw new Error(`No hay suficiente stock del producto ${item.product.name}`);
+          }
+        } else {
+          // Decrementar stock del producto directamente (sin variantes)
+          const { error: stockError } = await supabase
+            .from('products')
+            .update({ stock: item.product.stock - item.quantity })
+            .eq('id', item.product.id);
+            
+          if (stockError) throw stockError;
+        }
+      }
+
       // Preparar items
       const items = cart.map(item => ({
         product_id: item.product.id,
+        variant_id: item.variant_id || null,
         product_name: item.product.name,
+        size: item.product.size || null,
         quantity: item.quantity,
         unit_price: item.product.price,
         discount_percentage: item.discount,

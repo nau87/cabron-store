@@ -1,10 +1,17 @@
 'use client';
 
 import { Product } from '@/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface AddToCartButtonProps {
-  product: Product;
+  product: Product & { variants?: any[] };
+}
+
+interface Variant {
+  id: string;
+  size: string;
+  stock: number;
 }
 
 export default function AddToCartButton({ product }: AddToCartButtonProps) {
@@ -12,10 +19,37 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [showSizeModal, setShowSizeModal] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
 
-  // Obtener talles disponibles del producto
-  const availableSizes = product.size ? product.size.split(',').map(s => s.trim()) : [];
-  const hasSizes = availableSizes.length > 0;
+  // Cargar variantes cuando se abre el modal
+  useEffect(() => {
+    if (showSizeModal && (!product.variants || product.variants.length === 0)) {
+      loadVariants();
+    } else if (product.variants && product.variants.length > 0) {
+      setVariants(product.variants);
+    }
+  }, [showSizeModal, product.variants]);
+
+  const loadVariants = async () => {
+    setLoadingVariants(true);
+    try {
+      const { data } = await supabase
+        .from('product_variants')
+        .select('id, size, stock')
+        .eq('product_id', product.id)
+        .gt('stock', 0)
+        .order('size');
+      
+      setVariants(data || []);
+    } catch (error) {
+      console.error('Error loading variants:', error);
+    } finally {
+      setLoadingVariants(false);
+    }
+  };
+
+  const hasSizes = variants.length > 0 || (product.variants && product.variants.length > 0);
 
   const handleAddToCart = () => {
     if (hasSizes && !selectedSize) {
@@ -27,17 +61,37 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
 
   const addToCart = (size?: string) => {
     setIsAdding(true);
+    
+    // Si hay talle, buscar la variante correspondiente
+    let variantId = null;
+    if (size) {
+      const variant = variants.find(v => v.size === size);
+      if (!variant) {
+        alert('Talle no disponible');
+        setIsAdding(false);
+        return;
+      }
+      variantId = variant.id;
+    }
+    
     const cart = localStorage.getItem('cart');
     const currentCart = cart ? JSON.parse(cart) : [];
     
     const existingItemIndex = currentCart.findIndex(
-      (item: any) => item.product.id === product.id && item.selectedSize === size
+      (item: any) => item.product.id === product.id && 
+                     item.selectedSize === size &&
+                     item.variantId === variantId
     );
     
     if (existingItemIndex > -1) {
       currentCart[existingItemIndex].quantity += quantity;
     } else {
-      currentCart.push({ product, quantity, selectedSize: size });
+      currentCart.push({ 
+        product, 
+        quantity, 
+        selectedSize: size,
+        variantId: variantId 
+      });
     }
     
     localStorage.setItem('cart', JSON.stringify(currentCart));
@@ -112,21 +166,34 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
               {product.name}
             </p>
             
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {availableSizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`py-3 border-2 font-bold text-sm uppercase tracking-wider transition-all ${
-                    selectedSize === size
-                      ? 'border-black bg-black text-white'
-                      : 'border-zinc-300 text-zinc-700 hover:border-black'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
+            {loadingVariants ? (
+              <div className="text-center py-8 text-zinc-600">
+                Cargando talles...
+              </div>
+            ) : variants.length === 0 ? (
+              <div className="text-center py-8 text-red-600">
+                No hay talles disponibles
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {variants.map((variant) => (
+                  <button
+                    key={variant.id}
+                    onClick={() => setSelectedSize(variant.size)}
+                    className={`py-3 border-2 font-bold text-sm uppercase tracking-wider transition-all ${
+                      selectedSize === variant.size
+                        ? 'border-black bg-black text-white'
+                        : 'border-zinc-300 text-zinc-700 hover:border-black'
+                    }`}
+                  >
+                    <div>{variant.size}</div>
+                    <div className="text-xs text-zinc-500">
+                      {variant.stock} disp.
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button

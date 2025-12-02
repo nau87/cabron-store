@@ -166,21 +166,35 @@ export default function VentasPage() {
   const handleShowDetail = (sale: any) => {
     setSelectedSale(sale);
     setShowDetailModal(true);
-    
-    // Generar comprobante en canvas después de que el modal se renderice
-    setTimeout(() => generateReceiptImage(), 100);
   };
 
+  // Generar comprobante cuando el modal se abre
+  useEffect(() => {
+    if (showDetailModal && selectedSale && canvasRef.current) {
+      // Esperar un poco más para asegurar que el canvas esté en el DOM
+      const timer = setTimeout(() => generateReceiptImage(), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [showDetailModal, selectedSale]);
+
   const generateReceiptImage = () => {
-    if (!selectedSale || !canvasRef.current) return;
+    if (!selectedSale || !canvasRef.current) {
+      console.log('No selectedSale or canvasRef', { selectedSale, canvas: canvasRef.current });
+      return;
+    }
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.log('No canvas context');
+      return;
+    }
+
+    console.log('Generando comprobante para:', selectedSale);
 
     // Configurar canvas
     canvas.width = 400;
-    const itemsHeight = selectedSale.items.length * 30;
+    const itemsHeight = selectedSale.items?.length ? selectedSale.items.length * 30 : 0;
     canvas.height = selectedSale.type === 'pos' ? 600 + itemsHeight : 550 + itemsHeight;
 
     // Fondo blanco
@@ -239,16 +253,18 @@ export default function VentasPage() {
     yPos += 20;
 
     ctx.font = '11px Arial';
-    selectedSale.items.forEach(item => {
-      const itemText = `${item.quantity}x ${item.name}`;
-      const priceText = `$${(item.price * item.quantity).toFixed(2)}`;
-      
-      ctx.textAlign = 'left';
-      ctx.fillText(itemText, 20, yPos);
-      ctx.textAlign = 'right';
-      ctx.fillText(priceText, canvas.width - 20, yPos);
-      yPos += 25;
-    });
+    if (selectedSale.items && selectedSale.items.length > 0) {
+      selectedSale.items.forEach(item => {
+        const itemText = `${item.quantity}x ${item.name}`;
+        const priceText = `$${(item.price * item.quantity).toFixed(2)}`;
+        
+        ctx.textAlign = 'left';
+        ctx.fillText(itemText, 20, yPos);
+        ctx.textAlign = 'right';
+        ctx.fillText(priceText, canvas.width - 20, yPos);
+        yPos += 25;
+      });
+    }
 
     yPos += 10;
 
@@ -520,8 +536,10 @@ export default function VentasPage() {
               {/* Canvas del comprobante */}
               <div className="flex justify-center mb-4">
                 <canvas 
-                  ref={canvasRef} 
-                  className="border border-gray-300 rounded shadow-lg"
+                  ref={canvasRef}
+                  width={400}
+                  height={600}
+                  className="border border-gray-300 rounded shadow-lg max-w-full"
                 />
               </div>
 

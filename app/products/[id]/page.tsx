@@ -18,7 +18,15 @@ async function getProduct(id: string) {
     return null;
   }
 
-  return product as Product;
+  // Cargar variantes del producto
+  const { data: variants } = await supabase
+    .from('product_variants')
+    .select('*')
+    .eq('product_id', id)
+    .gt('stock', 0)
+    .order('size');
+
+  return { ...product, variants: variants || [] } as Product & { variants: any[] };
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
