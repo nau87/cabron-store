@@ -13,6 +13,9 @@ interface Order {
   customer_email: string;
   customer_phone: string;
   shipping_address: string;
+  city?: string;
+  province?: string;
+  postal_code?: string;
   total: number;
   status: string;
   payment_method?: string;
