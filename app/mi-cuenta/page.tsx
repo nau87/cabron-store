@@ -15,6 +15,7 @@ interface Transaction {
   payment_method?: string;
   sale_id?: string;
   created_at: string;
+  receipt_data?: any;
   items?: Array<{
     id: string;
     name: string;

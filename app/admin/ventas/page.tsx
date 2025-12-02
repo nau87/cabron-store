@@ -8,6 +8,7 @@ interface LocalSale {
   id: string;
   sale_number: string;
   customer_name: string;
+  receipt_data?: any;
   items: Array<{
     id: string;
     name: string;
@@ -24,6 +25,7 @@ interface OnlineOrder {
   customer_name: string;
   customer_email: string;
   customer_phone: string;
+  receipt_data?: any;
   items: Array<{
     id: string;
     name: string;
