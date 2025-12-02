@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import AdminNav from '@/components/AdminNav';
+import { useReceiptGenerator } from '@/components/ReceiptGenerator';
 import Image from 'next/image';
 
 interface Product {
@@ -35,6 +36,7 @@ interface Customer {
 export default function POSPage() {
   const { isAdmin, loading, user } = useAuth();
   const router = useRouter();
+  const { generateAndDownload } = useReceiptGenerator();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -311,6 +313,10 @@ export default function POSPage() {
       }
 
       // Limpiar carrito
+      const saleCartItems = [...cart];
+      const saleCustomerName = customer.name;
+      const salePaymentMethod = isAccountSale ? 'cuenta_corriente' : paymentMethod;
+      
       setCart([]);
       setCustomer({ name: 'Cliente General' });
       setGeneralDiscount(0);
@@ -323,6 +329,26 @@ export default function POSPage() {
         : `✅ Venta #${saleNumber} completada!\nTotal: $${total.toFixed(2)}`;
       
       alert(message);
+
+      // Preguntar si desea generar comprobante
+      if (confirm('¿Desea generar el comprobante de venta?')) {
+        generateAndDownload({
+          type: 'sale',
+          saleNumber,
+          customerName: saleCustomerName,
+          items: saleCartItems.map(item => ({
+            product_name: item.product.name,
+            quantity: item.quantity,
+            unit_price: item.product.price,
+            subtotal: item.product.price * item.quantity * (1 - item.discount / 100),
+          })),
+          subtotal,
+          discount: discountAmount,
+          total,
+          paymentMethod: salePaymentMethod,
+          date: new Date(),
+        });
+      }
     } catch (error) {
       console.error('Error:', error);
       alert('Error al procesar la venta');

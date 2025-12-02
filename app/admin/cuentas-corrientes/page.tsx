@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import AdminNav from '@/components/AdminNav';
+import { useReceiptGenerator } from '@/components/ReceiptGenerator';
 
 interface Customer {
   customer_id: string;
@@ -25,6 +26,7 @@ interface Transaction {
 export default function CuentasCorrientesPage() {
   const { isAdmin, loading } = useAuth();
   const router = useRouter();
+  const { generateAndDownload } = useReceiptGenerator();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -117,6 +119,12 @@ export default function CuentasCorrientesPage() {
 
       alert('✅ Pago registrado exitosamente');
       
+      // Guardar datos para comprobante
+      const receiptCustomerName = selectedCustomer.full_name;
+      const receiptAmount = amount;
+      const receiptPaymentMethod = paymentMethod;
+      const receiptDescription = paymentDescription || `Pago registrado - ${paymentMethod}`;
+      
       // Recargar datos
       await loadCustomers();
       await loadTransactions(selectedCustomer.customer_id);
@@ -131,6 +139,18 @@ export default function CuentasCorrientesPage() {
       setPaymentAmount('');
       setPaymentDescription('');
       setShowPaymentModal(false);
+
+      // Preguntar si desea generar comprobante
+      if (confirm('¿Desea generar el comprobante de pago?')) {
+        generateAndDownload({
+          type: 'payment',
+          customerName: receiptCustomerName,
+          total: receiptAmount,
+          paymentMethod: receiptPaymentMethod,
+          description: receiptDescription,
+          date: new Date(),
+        });
+      }
     } catch (error) {
       console.error('Error registering payment:', error);
       alert('Error al registrar el pago');
