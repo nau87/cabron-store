@@ -41,21 +41,32 @@ export default function CheckoutPage() {
   useEffect(() => {
     const loadUserData = async () => {
       if (user) {
-        // Cargar datos del perfil del usuario
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('full_name, email, phone')
-          .eq('id', user.id)
-          .single();
+        try {
+          // Cargar datos del perfil del usuario
+          const { data: profile, error } = await supabase
+            .from('user_profiles')
+            .select('full_name, email, phone')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        if (profile) {
-          setFormData(prev => ({
-            ...prev,
-            customer_name: profile.full_name || '',
-            customer_email: profile.email || user.email || '',
-            customer_phone: profile.phone || user.user_metadata?.phone || '',
-          }));
-        } else {
+          if (!error && profile) {
+            setFormData(prev => ({
+              ...prev,
+              customer_name: profile.full_name || '',
+              customer_email: profile.email || user.email || '',
+              customer_phone: profile.phone || user.user_metadata?.phone || '',
+            }));
+          } else {
+            // Si no hay perfil, usar datos del usuario de auth
+            setFormData(prev => ({
+              ...prev,
+              customer_email: user.email || '',
+              customer_phone: user.user_metadata?.phone || '',
+            }));
+          }
+        } catch (error) {
+          console.error('Error loading profile:', error);
+          // Fallback a datos básicos del usuario
           setFormData(prev => ({
             ...prev,
             customer_email: user.email || '',

@@ -13,7 +13,13 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 -- 2. Habilitar RLS
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
--- 3. Políticas RLS para que los usuarios puedan ver/editar su propio perfil
+-- 3. Eliminar políticas antiguas si existen
+DROP POLICY IF EXISTS "Users can view own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON user_profiles;
+
+-- 4. Políticas RLS para que los usuarios puedan ver/editar su propio perfil
 CREATE POLICY "Users can view own profile"
   ON user_profiles
   FOR SELECT
@@ -22,17 +28,18 @@ CREATE POLICY "Users can view own profile"
 CREATE POLICY "Users can update own profile"
   ON user_profiles
   FOR UPDATE
-  USING (auth.uid() = id);
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Users can insert own profile"
   ON user_profiles
   FOR INSERT
   WITH CHECK (auth.uid() = id);
 
--- 4. Permitir a admins ver todos los perfiles
+-- 5. Permitir a admins ver todos los perfiles
 CREATE POLICY "Admins can view all profiles"
   ON user_profiles
-  FOR SELECT
+  FOR ALL
   USING (
     EXISTS (
       SELECT 1 FROM auth.users
