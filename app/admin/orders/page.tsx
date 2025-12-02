@@ -55,19 +55,25 @@ export default function OrdersPage() {
       let query = supabase
         .from('orders')
         .select('*')
-        .neq('status', 'cancelled') // Filtrar pedidos cancelados
         .order('created_at', { ascending: false });
-
-      if (filter !== 'all') {
-        query = query.eq('status', filter);
-      }
 
       const { data, error } = await query;
 
       if (error) throw error;
       
-      console.log('Pedidos cargados:', data?.length);
-      setOrders(data || []);
+      console.log('Total de pedidos en BD:', data?.length);
+      console.log('Estados únicos:', [...new Set(data?.map(o => o.status))]);
+      
+      // Filtrar pedidos cancelados DESPUÉS de traer los datos
+      let filteredOrders = (data || []).filter(order => order.status !== 'cancelled');
+      
+      // Aplicar filtro adicional si no es "all"
+      if (filter !== 'all') {
+        filteredOrders = filteredOrders.filter(order => order.status === filter);
+      }
+      
+      console.log('Pedidos después de filtrar cancelados:', filteredOrders.length);
+      setOrders(filteredOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {
