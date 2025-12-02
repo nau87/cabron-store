@@ -61,15 +61,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .maybeSingle(); // Use maybeSingle to handle missing rows gracefully
 
-      if (error && error.code !== 'PGRST116') { // Ignore "not found" errors
+      // Silently ignore permission errors and not found errors
+      if (error && error.code !== 'PGRST116' && error.code !== '42501') {
         console.error('Error loading profile:', error);
       }
       
       if (data) {
         setProfile(data);
       }
-    } catch (error) {
-      console.error('Error loading profile:', error);
+    } catch (error: any) {
+      // Only log unexpected errors, not permission/access issues
+      if (error?.code !== '42501' && error?.code !== 'PGRST116') {
+        console.error('Error loading profile:', error);
+      }
     } finally {
       setLoading(false);
     }

@@ -64,8 +64,11 @@ export default function CheckoutPage() {
               customer_phone: user.user_metadata?.phone || '',
             }));
           }
-        } catch (error) {
-          console.error('Error loading profile:', error);
+        } catch (error: any) {
+          // Silently ignore permission errors
+          if (error?.code !== '42501' && error?.code !== 'PGRST116') {
+            console.error('Error loading profile:', error);
+          }
           // Fallback a datos básicos del usuario
           setFormData(prev => ({
             ...prev,
