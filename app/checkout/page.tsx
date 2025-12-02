@@ -179,7 +179,7 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           ...paymentFormData,
-          amount: cartTotal,
+          transaction_amount: cartTotal,
           description: `Compra en Cabrón Store - ${cartItems.length} producto(s)`,
           payer: {
             email: payerEmail,
