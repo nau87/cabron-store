@@ -233,6 +233,7 @@ export default function VentasPage() {
       ctx.fillText(`Nº Ticket: ${posSale.sale_number}`, 20, yPos);
       yPos += 20;
       ctx.fillText(`Cliente: ${posSale.customer_name}`, 20, yPos);
+      yPos += 20;
     } else {
       const onlineSale = selectedSale as OnlineOrder & { type: 'online' };
       ctx.fillText(`Cliente: ${onlineSale.customer_name}`, 20, yPos);
@@ -243,7 +244,6 @@ export default function VentasPage() {
       }
     }
 
-    yPos += 5;
     ctx.fillText(`Fecha: ${formatDate(selectedSale.created_at)}`, 20, yPos);
     yPos += 30;
 
