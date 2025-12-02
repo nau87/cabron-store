@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { supabase } from '@/lib/supabase';
 import AdminNav from '@/components/AdminNav';
 
 interface LocalSale {
@@ -39,8 +39,6 @@ type SaleType = 'all' | 'pos' | 'online';
 type DateFilter = 'today' | 'week' | 'month' | 'all';
 
 export default function VentasPage() {
-  const supabase = createClient();
-  
   const [localSales, setLocalSales] = useState<LocalSale[]>([]);
   const [onlineOrders, setOnlineOrders] = useState<OnlineOrder[]>([]);
   const [loading, setLoading] = useState(true);
