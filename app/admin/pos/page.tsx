@@ -354,6 +354,28 @@ export default function POSPage() {
       const total = calculateTotal();
       const discountAmount = subtotal - total;
 
+      // Preparar datos del comprobante para almacenar
+      const receiptData = {
+        sale_number: saleNumber,
+        customer_name: customer.name,
+        customer_email: customer.email,
+        customer_phone: customer.phone,
+        items: cart.map(item => ({
+          name: item.product.name,
+          size: item.size || null,
+          quantity: item.quantity,
+          price: item.product.price,
+          discount: item.discount,
+          subtotal: item.product.price * item.quantity * (1 - item.discount / 100),
+        })),
+        subtotal,
+        discount_amount: discountAmount,
+        discount_percentage: generalDiscount,
+        total,
+        payment_method: isAccountSale ? 'cuenta_corriente' : paymentMethod,
+        date: new Date().toISOString(),
+      };
+
       // Crear venta
       const { data: saleData, error: saleError } = await supabase
         .from('local_sales')
@@ -371,6 +393,7 @@ export default function POSPage() {
             total,
             payment_method: isAccountSale ? 'cuenta_corriente' : paymentMethod,
             admin_user_id: user?.id,
+            receipt_data: receiptData,
           },
         ])
         .select()

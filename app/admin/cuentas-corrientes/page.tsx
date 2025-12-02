@@ -209,8 +209,12 @@ export default function CuentasCorrientesPage() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Usar datos almacenados si están disponibles
+    const useStoredData = selectedTransaction.receipt_data != null;
+    const receiptInfo = useStoredData ? selectedTransaction.receipt_data : selectedTransaction;
+
     // Calcular altura dinámica basada en items
-    const itemsCount = selectedTransaction.items?.length || 0;
+    const itemsCount = receiptInfo.items?.length || 0;
     const itemsHeight = itemsCount * 25;
     const baseHeight = selectedTransaction.type === 'sale' ? 400 : 350;
     
@@ -267,10 +271,14 @@ export default function CuentasCorrientesPage() {
       yPos += 20;
 
       ctx.font = '11px Arial';
-      if (selectedTransaction.items && selectedTransaction.items.length > 0) {
-        selectedTransaction.items.forEach(item => {
-          const itemText = `${item.quantity}x ${item.name}`;
-          const priceText = `$${(item.price * item.quantity).toFixed(2)}`;
+      if (receiptInfo.items && receiptInfo.items.length > 0) {
+        receiptInfo.items.forEach((item: any) => {
+          const itemName = useStoredData ? item.name : (item.name || 'Producto eliminado');
+          const itemQuantity = item.quantity;
+          const itemPrice = item.price || item.unit_price;
+          
+          const itemText = `${itemQuantity}x ${itemName}`;
+          const priceText = `$${(itemPrice * itemQuantity).toFixed(2)}`;
           
           ctx.textAlign = 'left';
           ctx.fillText(itemText, 20, yPos);

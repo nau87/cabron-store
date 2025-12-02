@@ -192,9 +192,13 @@ export default function VentasPage() {
 
     console.log('Generando comprobante para:', selectedSale);
 
+    // Usar datos almacenados si están disponibles, si no, regenerar
+    const useStoredData = selectedSale.receipt_data != null;
+    const receiptInfo = useStoredData ? selectedSale.receipt_data : selectedSale;
+
     // Configurar canvas
     canvas.width = 400;
-    const itemsHeight = selectedSale.items?.length ? selectedSale.items.length * 30 : 0;
+    const itemsHeight = receiptInfo.items?.length ? receiptInfo.items.length * 30 : 0;
     canvas.height = selectedSale.type === 'pos' ? 600 + itemsHeight : 550 + itemsHeight;
 
     // Fondo blanco
@@ -229,17 +233,16 @@ export default function VentasPage() {
     ctx.font = '12px Arial';
 
     if (selectedSale.type === 'pos') {
-      const posSale = selectedSale as LocalSale & { type: 'pos' };
-      ctx.fillText(`Nº Ticket: ${posSale.sale_number}`, 20, yPos);
+      ctx.fillText(`Nº Ticket: ${receiptInfo.sale_number}`, 20, yPos);
       yPos += 20;
-      ctx.fillText(`Cliente: ${posSale.customer_name}`, 20, yPos);
+      ctx.fillText(`Cliente: ${receiptInfo.customer_name}`, 20, yPos);
       yPos += 20;
     } else {
       const onlineSale = selectedSale as OnlineOrder & { type: 'online' };
-      ctx.fillText(`Cliente: ${onlineSale.customer_name}`, 20, yPos);
+      ctx.fillText(`Cliente: ${receiptInfo.customer_name || onlineSale.customer_name}`, 20, yPos);
       yPos += 20;
-      if (onlineSale.customer_email) {
-        ctx.fillText(`Email: ${onlineSale.customer_email}`, 20, yPos);
+      if (receiptInfo.customer_email || onlineSale.customer_email) {
+        ctx.fillText(`Email: ${receiptInfo.customer_email || onlineSale.customer_email}`, 20, yPos);
         yPos += 20;
       }
     }
@@ -253,10 +256,16 @@ export default function VentasPage() {
     yPos += 20;
 
     ctx.font = '11px Arial';
-    if (selectedSale.items && selectedSale.items.length > 0) {
-      selectedSale.items.forEach(item => {
-        const itemText = `${item.quantity}x ${item.name}`;
-        const priceText = `$${(item.price * item.quantity).toFixed(2)}`;
+    if (receiptInfo.items && receiptInfo.items.length > 0) {
+      receiptInfo.items.forEach((item: any) => {
+        // Si usamos datos almacenados, ya tiene la estructura correcta
+        // Si regeneramos, usamos la estructura original
+        const itemName = useStoredData ? item.name : (item.name || 'Producto eliminado');
+        const itemQuantity = item.quantity;
+        const itemPrice = item.price || item.unit_price;
+        
+        const itemText = `${itemQuantity}x ${itemName}`;
+        const priceText = `$${(itemPrice * itemQuantity).toFixed(2)}`;
         
         ctx.textAlign = 'left';
         ctx.fillText(itemText, 20, yPos);
