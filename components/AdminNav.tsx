@@ -10,7 +10,8 @@ export default function AdminNav() {
     { href: '/admin', label: '📦 Productos', exact: true },
     { href: '/admin/orders', label: '📋 Pedidos' },
     { href: '/admin/pos', label: '🏪 Punto de Venta' },
-    { href: '/admin/inventory', label: '📊 Inventario' },
+    { href: '/admin/ventas', label: '📊 Ventas' },
+    { href: '/admin/inventory', label: '📦 Inventario' },
     { href: '/admin/cuentas-corrientes', label: '💰 Cuentas Corrientes' },
   ];
 
