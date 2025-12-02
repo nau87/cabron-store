@@ -3,10 +3,21 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar que las variables de entorno existan
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      console.error('NEXT_PUBLIC_SUPABASE_URL no está configurada');
+      return NextResponse.json({ error: 'Configuración incompleta: SUPABASE_URL' }, { status: 500 });
+    }
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY no está configurada');
+      return NextResponse.json({ error: 'Configuración incompleta: SERVICE_ROLE_KEY no configurada' }, { status: 500 });
+    }
+
     // Cliente con privilegios de service_role (crear en runtime)
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
           autoRefreshToken: false,
