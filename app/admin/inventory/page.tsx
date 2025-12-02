@@ -40,6 +40,7 @@ export default function InventoryPage() {
   const [showVariantModal, setShowVariantModal] = useState(false);
   const [variantAdjustment, setVariantAdjustment] = useState<number>(0);
   const [variantReason, setVariantReason] = useState('');
+  const [variantSearchTerm, setVariantSearchTerm] = useState('');
 
   useEffect(() => {
     loadProducts();
@@ -218,6 +219,15 @@ export default function InventoryPage() {
     return matchesStockFilter && matchesCategoryFilter;
   });
 
+  // Filtrar variantes por búsqueda
+  const filteredVariants = variants.filter(v => {
+    if (!variantSearchTerm.trim()) return true;
+    const searchLower = variantSearchTerm.toLowerCase();
+    const productName = v.product?.name?.toLowerCase() || '';
+    const sku = v.sku?.toLowerCase() || '';
+    return productName.includes(searchLower) || sku.includes(searchLower);
+  });
+
   return (
     <>
       <AdminNav />
@@ -389,6 +399,38 @@ export default function InventoryPage() {
         ) : (
           <>
             {/* Contenido de Variantes de Talles */}
+            
+            {/* Buscador de variantes */}
+            <div className="bg-white p-6 rounded-lg shadow mb-6">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-2">
+                    🔍 Buscar por Nombre o SKU
+                  </label>
+                  <input
+                    type="text"
+                    value={variantSearchTerm}
+                    onChange={(e) => setVariantSearchTerm(e.target.value)}
+                    placeholder="Ej: Remera Cabrón, SKU-001..."
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  />
+                </div>
+                {variantSearchTerm && (
+                  <button
+                    onClick={() => setVariantSearchTerm('')}
+                    className="mt-7 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+              {variantSearchTerm && (
+                <p className="text-sm text-gray-600 mt-2">
+                  Mostrando {filteredVariants.length} variante(s) encontrada(s)
+                </p>
+              )}
+            </div>
+
             <div className="bg-white rounded-lg shadow overflow-hidden">
               {loading ? (
                 <div className="p-8 text-center">Cargando variantes...</div>
@@ -406,7 +448,7 @@ export default function InventoryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {variants.map((variant) => (
+                    {filteredVariants.map((variant) => (
                       <tr key={variant.id} className="border-b hover:bg-gray-50">
                         <td className="p-4">
                           <div className="relative w-16 h-16">
@@ -471,9 +513,12 @@ export default function InventoryPage() {
                 </table>
               )}
 
-              {!loading && variants.length === 0 && (
+              {!loading && filteredVariants.length === 0 && (
                 <div className="p-8 text-center text-gray-500">
-                  No hay variantes de talles registradas
+                  {variantSearchTerm 
+                    ? 'No se encontraron variantes con ese criterio de búsqueda'
+                    : 'No hay variantes de talles registradas'
+                  }
                 </div>
               )}
             </div>
