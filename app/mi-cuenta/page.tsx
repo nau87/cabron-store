@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Link from 'next/link';
@@ -22,6 +22,9 @@ export default function MiCuentaPage() {
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -76,6 +79,155 @@ export default function MiCuentaPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleShowReceipt = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setShowReceiptModal(true);
+  };
+
+  // Generar comprobante cuando el modal se abre
+  useEffect(() => {
+    if (showReceiptModal && selectedTransaction && canvasRef.current && user) {
+      const timer = setTimeout(() => generateReceiptImage(), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [showReceiptModal, selectedTransaction, user]);
+
+  const generateReceiptImage = () => {
+    if (!selectedTransaction || !canvasRef.current || !user) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Configurar canvas
+    canvas.width = 400;
+    canvas.height = selectedTransaction.type === 'sale' ? 500 : 400;
+
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Configuración de texto
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+
+    let yPos = 30;
+
+    // Header
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('CABRÓN STORE', canvas.width / 2, yPos);
+    yPos += 30;
+
+    ctx.font = '14px Arial';
+    ctx.fillText(
+      selectedTransaction.type === 'sale' ? 'Comprobante de Venta' : 'Comprobante de Pago',
+      canvas.width / 2,
+      yPos
+    );
+    yPos += 40;
+
+    // Línea separadora
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 30;
+
+    // Información
+    ctx.textAlign = 'left';
+    ctx.font = '12px Arial';
+
+    ctx.fillText(`Cliente: ${user.email}`, 20, yPos);
+    yPos += 20;
+    ctx.fillText(`Fecha: ${formatDate(selectedTransaction.created_at)}`, 20, yPos);
+    yPos += 30;
+
+    if (selectedTransaction.type === 'sale') {
+      // Para ventas
+      ctx.font = 'bold 12px Arial';
+      ctx.fillText('COMPRA A CUENTA CORRIENTE', 20, yPos);
+      yPos += 25;
+
+      ctx.font = '11px Arial';
+      if (selectedTransaction.description) {
+        ctx.fillText(selectedTransaction.description, 20, yPos);
+        yPos += 25;
+      }
+    } else {
+      // Para pagos
+      ctx.font = 'bold 12px Arial';
+      ctx.fillText('PAGO REALIZADO', 20, yPos);
+      yPos += 25;
+
+      ctx.font = '11px Arial';
+      if (selectedTransaction.payment_method) {
+        ctx.fillText(`Método de pago: ${selectedTransaction.payment_method}`, 20, yPos);
+        yPos += 20;
+      }
+      if (selectedTransaction.description) {
+        ctx.fillText(selectedTransaction.description, 20, yPos);
+        yPos += 25;
+      }
+    }
+
+    yPos += 10;
+
+    // Línea separadora
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 20;
+
+    // Total/Monto
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(
+      selectedTransaction.type === 'sale' ? 'TOTAL:' : 'MONTO:',
+      20,
+      yPos
+    );
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${Math.abs(selectedTransaction.amount).toFixed(2)}`, canvas.width - 20, yPos);
+    yPos += 40;
+
+    // Footer
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 20;
+
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      selectedTransaction.type === 'sale' ? '¡Gracias por su compra!' : '¡Gracias por su pago!',
+      canvas.width / 2,
+      yPos
+    );
+    yPos += 15;
+    ctx.fillText('www.cabronstore.com', canvas.width / 2, yPos);
+  };
+
+  const downloadReceipt = () => {
+    if (!canvasRef.current || !selectedTransaction) return;
+
+    const canvas = canvasRef.current;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const fileName = `comprobante-${selectedTransaction.type}-${selectedTransaction.id.slice(0, 8)}.png`;
+      link.download = fileName;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
   };
 
   if (loading || loadingData) {
@@ -150,7 +302,8 @@ export default function MiCuentaPage() {
               {transactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800"
+                  onClick={() => handleShowReceipt(transaction)}
+                  className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4 border border-zinc-200 dark:border-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
@@ -196,6 +349,59 @@ export default function MiCuentaPage() {
         </div>
       </main>
       </div>
+
+      {/* Modal de Comprobante */}
+      {showReceiptModal && selectedTransaction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
+                📄 Comprobante
+              </h2>
+              <button
+                onClick={() => {
+                  setShowReceiptModal(false);
+                  setSelectedTransaction(null);
+                }}
+                className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Canvas del comprobante */}
+              <div className="flex justify-center mb-4">
+                <canvas
+                  ref={canvasRef}
+                  width={400}
+                  height={600}
+                  className="border border-zinc-300 dark:border-zinc-700 rounded shadow-lg max-w-full"
+                />
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={downloadReceipt}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  📥 Descargar Comprobante
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReceiptModal(false);
+                    setSelectedTransaction(null);
+                  }}
+                  className="bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-800 dark:text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
