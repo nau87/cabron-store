@@ -7,6 +7,7 @@ import AdminNav from '@/components/AdminNav';
 interface LocalSale {
   id: string;
   sale_number: string;
+  customer_name: string;
   items: Array<{
     id: string;
     name: string;
@@ -35,7 +36,7 @@ interface OnlineOrder {
   created_at: string;
 }
 
-type SaleType = 'all' | 'pos' | 'online';
+type SaleType = 'all' | 'pos' | 'online' | 'cuenta_corriente';
 type DateFilter = 'today' | 'week' | 'month' | 'all';
 
 export default function VentasPage() {
@@ -115,8 +116,17 @@ export default function VentasPage() {
   };
 
   const calculateTotals = () => {
-    const filteredLocal = saleTypeFilter === 'online' ? [] : localSales;
-    const filteredOnline = saleTypeFilter === 'pos' ? [] : onlineOrders;
+    let filteredLocal = localSales;
+    let filteredOnline = onlineOrders;
+
+    if (saleTypeFilter === 'online') {
+      filteredLocal = [];
+    } else if (saleTypeFilter === 'pos') {
+      filteredOnline = [];
+    } else if (saleTypeFilter === 'cuenta_corriente') {
+      filteredLocal = localSales.filter(sale => sale.payment_method === 'cuenta_corriente');
+      filteredOnline = [];
+    }
 
     const localTotal = filteredLocal.reduce((sum, sale) => sum + sale.total, 0);
     const onlineTotal = filteredOnline.reduce((sum, order) => sum + order.total, 0);
@@ -159,6 +169,9 @@ export default function VentasPage() {
 
   const filteredSales = allSales.filter(sale => {
     if (saleTypeFilter === 'all') return true;
+    if (saleTypeFilter === 'cuenta_corriente') {
+      return sale.type === 'pos' && (sale as LocalSale).payment_method === 'cuenta_corriente';
+    }
     return sale.type === saleTypeFilter;
   });
 
@@ -213,6 +226,7 @@ export default function VentasPage() {
                 <option value="all">Todas</option>
                 <option value="pos">POS</option>
                 <option value="online">Online</option>
+                <option value="cuenta_corriente">Cuenta Corriente</option>
               </select>
             </div>
 
@@ -263,7 +277,7 @@ export default function VentasPage() {
                       Tipo
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nº Venta / Cliente
+                      Cliente / Nº Venta
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Productos
@@ -293,10 +307,15 @@ export default function VentasPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {sale.type === 'pos' 
-                          ? (sale as LocalSale).sale_number 
-                          : (sale as OnlineOrder).customer_name}
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {sale.type === 'pos' ? (
+                          <div>
+                            <div className="font-semibold">{(sale as LocalSale).customer_name}</div>
+                            <div className="text-xs text-gray-500">{(sale as LocalSale).sale_number}</div>
+                          </div>
+                        ) : (
+                          (sale as OnlineOrder).customer_name
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         <div className="max-w-xs">
