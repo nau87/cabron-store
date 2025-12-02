@@ -168,6 +168,7 @@ export default function CheckoutPage() {
       // Preparar los items del pedido
       const orderItems = cartItems.map(item => ({
         product_id: item.product.id,
+        product_name: item.product.name,
         quantity: item.quantity,
         price: item.product.price,
         size: item.selectedSize
@@ -217,6 +218,7 @@ export default function CheckoutPage() {
       // Preparar los items del carrito
       const orderItems = cartItems.map(item => ({
         product_id: item.product.id,
+        product_name: item.product.name,
         quantity: item.quantity,
         price: item.product.price,
         size: item.selectedSize
