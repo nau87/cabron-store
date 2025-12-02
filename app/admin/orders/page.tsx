@@ -32,6 +32,7 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState<string>('all');
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -50,6 +51,7 @@ export default function OrdersPage() {
 
   const loadOrders = async () => {
     try {
+      console.log('Cargando pedidos...');
       let query = supabase
         .from('orders')
         .select('*')
@@ -63,6 +65,8 @@ export default function OrdersPage() {
       const { data, error } = await query;
 
       if (error) throw error;
+      
+      console.log('Pedidos cargados:', data?.length);
       setOrders(data || []);
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -90,8 +94,14 @@ export default function OrdersPage() {
   };
 
   const handleCancelOrder = async (order: Order) => {
+    if (cancelling) {
+      console.log('Ya hay una cancelación en proceso');
+      return;
+    }
+    
     if (!confirm(`¿Estás seguro de cancelar el pedido de ${order.customer_name}?`)) return;
 
+    setCancelling(true);
     try {
       console.log('Cancelando pedido:', order.id);
       
@@ -125,15 +135,20 @@ export default function OrdersPage() {
         }
       }
 
-      alert('Pedido cancelado y stock restaurado exitosamente');
+      // Cerrar el modal primero
       setSelectedOrder(null);
       
       // Recargar la lista de pedidos
+      console.log('Recargando lista de pedidos...');
       await loadOrders();
+      
+      alert('Pedido cancelado y stock restaurado exitosamente');
       
     } catch (error: any) {
       console.error('Error cancelling order:', error);
       alert(`Error al cancelar el pedido: ${error.message || 'Error desconocido'}`);
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -325,9 +340,10 @@ export default function OrdersPage() {
                       {order.status !== 'cancelled' && order.status !== 'delivered' && (
                         <button
                           onClick={() => handleCancelOrder(order)}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                          disabled={cancelling}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Cancelar
+                          {cancelling ? 'Procesando...' : 'Cancelar'}
                         </button>
                       )}
                     </td>
@@ -431,9 +447,10 @@ export default function OrdersPage() {
               {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
                 <button
                   onClick={() => handleCancelOrder(selectedOrder)}
-                  className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                  disabled={cancelling}
+                  className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ❌ Cancelar Pedido
+                  {cancelling ? '⏳ Procesando...' : '❌ Cancelar Pedido'}
                 </button>
               )}
               <button
