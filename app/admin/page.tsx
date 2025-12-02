@@ -263,11 +263,12 @@ function ProductModal({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images || product?.image_url ? [product.image_url] : []);
+  const [existingUrls, setExistingUrls] = useState<string[]>(product?.images || product?.image_url ? [product.image_url] : []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     
-    if (imageFiles.length + files.length > 3) {
+    if (imagePreviews.length + files.length > 3) {
       alert('Máximo 3 imágenes por producto');
       return;
     }
@@ -288,7 +289,17 @@ function ProductModal({
   };
 
   const removeImage = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    const preview = imagePreviews[index];
+    
+    // Si es URL existente, quitarla de existingUrls
+    if (preview.startsWith('http')) {
+      setExistingUrls(prev => prev.filter(url => url !== preview));
+    } else {
+      // Si es preview local, quitar el archivo
+      const localIndex = imagePreviews.slice(0, index).filter(p => !p.startsWith('http')).length;
+      setImageFiles(prev => prev.filter((_, i) => i !== localIndex));
+    }
+    
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -302,14 +313,15 @@ function ProductModal({
       return newPreviews;
     });
 
-    setImageFiles(prev => {
-      const newFiles = [...prev];
-      if (index < newFiles.length) {
-        const [movedFile] = newFiles.splice(index, 1);
-        newFiles.unshift(movedFile);
-      }
-      return newFiles;
-    });
+    // Actualizar existingUrls si es una URL existente
+    const preview = imagePreviews[index];
+    if (preview.startsWith('http')) {
+      setExistingUrls(prev => {
+        const newUrls = prev.filter(url => url !== preview);
+        newUrls.unshift(preview);
+        return newUrls;
+      });
+    }
   };
 
   const uploadImages = async (): Promise<string[]> => {
@@ -317,17 +329,17 @@ function ProductModal({
     
     try {
       const finalUrls: string[] = [];
-      let fileCounter = 0;
 
-      // Procesar imagePreviews en orden, subiendo solo las nuevas
+      // Procesar imagePreviews en orden
       for (const preview of imagePreviews) {
         if (preview.startsWith('http')) {
           // URL existente, mantenerla
           finalUrls.push(preview);
         } else {
-          // Preview local (data:image), subir el archivo correspondiente
-          const file = imageFiles[fileCounter];
-          fileCounter++;
+          // Preview local (data:image), buscar el archivo correspondiente
+          const localPreviews = imagePreviews.filter(p => !p.startsWith('http'));
+          const localIndex = localPreviews.indexOf(preview);
+          const file = imageFiles[localIndex];
           
           if (!file) continue;
           
@@ -373,9 +385,21 @@ function ProductModal({
         return;
       }
 
+      let currentStock = 0;
+      
+      // Si estamos editando, obtener el stock total de las variantes
+      if (product) {
+        const { data: variants } = await supabase
+          .from('product_variants')
+          .select('stock')
+          .eq('product_id', product.id);
+        
+        currentStock = variants?.reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
+      }
+
       const productData = { 
         ...formData, 
-        stock: 0, // Stock se maneja por variantes
+        stock: currentStock, // Al editar, mantener el stock de variantes; al crear, 0
         image_url: imageUrls[0], // Primera imagen como principal
         images: imageUrls // Array completo
       };
