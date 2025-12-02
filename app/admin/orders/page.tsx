@@ -15,6 +15,8 @@ interface Order {
   shipping_address: string;
   total: number;
   status: string;
+  payment_method?: string;
+  discount_amount?: number;
   items: {
     product_id: string;
     quantity: number;
@@ -248,6 +250,16 @@ export default function OrdersPage() {
             )}
           </button>
           <button
+            onClick={() => setFilter('pending_payment')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors relative ${
+              filter === 'pending_payment'
+                ? 'bg-orange-500 text-white'
+                : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+            }`}
+          >
+            🏦 Transferencia Pendiente
+          </button>
+          <button
             onClick={() => setFilter('confirmed')}
             className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
               filter === 'confirmed'
@@ -335,6 +347,11 @@ export default function OrdersPage() {
                       <div className="text-sm text-zinc-500 dark:text-zinc-400">
                         {order.customer_phone}
                       </div>
+                      {order.payment_method === 'transferencia' && (
+                        <span className="inline-flex items-center px-2 py-1 mt-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
+                          🏦 Transferencia (-30%)
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-zinc-900 dark:text-white">
                       ${order.total.toFixed(2)}
