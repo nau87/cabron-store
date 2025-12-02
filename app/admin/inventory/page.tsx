@@ -83,6 +83,9 @@ export default function InventoryPage() {
         product_id: selectedProduct.id,
         change_type: 'manual_adjustment',
         quantity_change: adjustment,
+        change_amount: adjustment, // Columna legacy requerida
+        previous_stock: selectedProduct.stock,
+        new_stock: newStock,
         stock_after: newStock,
         reason: reason || 'Ajuste manual',
       });

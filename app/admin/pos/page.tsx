@@ -380,6 +380,9 @@ export default function POSPage() {
           product_id: products.id,
           change_type: 'return',
           quantity_change: returnQuantity,
+          change_amount: returnQuantity, // Columna legacy requerida
+          previous_stock: products.stock,
+          new_stock: newStock,
           stock_after: newStock,
           reason: `Devolución - SKU: ${returnSku} Talle: ${returnSize}`,
         });
