@@ -403,7 +403,7 @@ export default function POSPage() {
 
       // Si es venta a cuenta corriente, registrar en transacciones
       if (isAccountSale && customer.id && saleData) {
-        const { error: accountError } = await supabase.rpc('register_sale_to_account', {
+        const { data: accountData, error: accountError } = await supabase.rpc('register_sale_to_account', {
           p_customer_id: customer.id,
           p_sale_id: saleData.id,
           p_amount: total,
@@ -413,6 +413,17 @@ export default function POSPage() {
         if (accountError) {
           console.error('Error registrando en cuenta corriente:', accountError);
           alert('⚠️ Venta completada pero error al registrar en cuenta corriente');
+        } else {
+          // Actualizar la transacción creada con receipt_data
+          const { error: updateError } = await supabase
+            .from('customer_account_transactions')
+            .update({ receipt_data: receiptData })
+            .eq('customer_id', customer.id)
+            .eq('sale_id', saleData.id);
+
+          if (updateError) {
+            console.error('Error actualizando receipt_data:', updateError);
+          }
         }
       }
 

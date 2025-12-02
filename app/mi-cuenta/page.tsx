@@ -76,13 +76,14 @@ export default function MiCuentaPage() {
             if (transaction.type === 'sale' && transaction.sale_id) {
               const { data: saleData } = await supabase
                 .from('local_sales')
-                .select('items')
+                .select('items, receipt_data')
                 .eq('id', transaction.sale_id)
                 .single();
               
               return {
                 ...transaction,
-                items: saleData?.items || []
+                items: saleData?.items || [],
+                receipt_data: transaction.receipt_data || saleData?.receipt_data
               };
             }
             return transaction;

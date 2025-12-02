@@ -138,6 +138,16 @@ export default function CuentasCorrientesPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Preparar datos del comprobante
+      const receiptData = {
+        customer_name: selectedCustomer.full_name,
+        customer_email: selectedCustomer.email,
+        amount: amount,
+        payment_method: paymentMethod,
+        description: paymentDescription || `Pago registrado - ${paymentMethod}`,
+        date: new Date().toISOString(),
+      };
+
       const { error } = await supabase.rpc('register_payment', {
         p_customer_id: selectedCustomer.customer_id,
         p_amount: amount,
@@ -147,6 +157,20 @@ export default function CuentasCorrientesPage() {
       });
 
       if (error) throw error;
+
+      // Actualizar la transacción de pago con receipt_data
+      const { error: updateError } = await supabase
+        .from('customer_account_transactions')
+        .update({ receipt_data: receiptData })
+        .eq('customer_id', selectedCustomer.customer_id)
+        .eq('type', 'payment')
+        .eq('amount', amount)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (updateError) {
+        console.error('Error actualizando receipt_data del pago:', updateError);
+      }
 
       alert('✅ Pago registrado exitosamente');
       
