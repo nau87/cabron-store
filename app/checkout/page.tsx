@@ -203,8 +203,8 @@ export default function CheckoutPage() {
       for (const item of cartItems) {
         if (item.variantId) {
           const { error: stockError } = await supabase.rpc('decrement_variant_stock', {
-            variant_id: item.variantId,
-            quantity_to_decrement: item.quantity
+            p_variant_id: item.variantId,
+            p_quantity: item.quantity
           });
 
           if (stockError) {
@@ -233,6 +233,7 @@ export default function CheckoutPage() {
       const orderItems = cartItems.map(item => ({
         product_id: item.product.id,
         product_name: item.product.name,
+        variant_id: item.variantId,
         quantity: item.quantity,
         price: item.product.price,
         size: item.selectedSize
