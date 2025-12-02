@@ -199,6 +199,20 @@ export default function CheckoutPage() {
 
       if (error) throw error;
 
+      // Decrementar el stock de cada producto usando variantId
+      for (const item of cartItems) {
+        if (item.variantId) {
+          const { error: stockError } = await supabase.rpc('decrement_variant_stock', {
+            variant_id: item.variantId,
+            quantity_to_decrement: item.quantity
+          });
+
+          if (stockError) {
+            console.error(`Error actualizando stock para variante ${item.variantId}:`, stockError);
+          }
+        }
+      }
+
       // Limpiar carrito y mostrar confirmación
       localStorage.removeItem('cart');
       setOrderPlaced(true);
