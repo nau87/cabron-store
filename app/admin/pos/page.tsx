@@ -362,7 +362,7 @@ export default function POSPage() {
         customer_phone: customer.phone,
         items: cart.map(item => ({
           name: item.product.name,
-          size: item.size || null,
+          size: item.product.size || null,
           quantity: item.quantity,
           price: item.product.price,
           discount: item.discount,
