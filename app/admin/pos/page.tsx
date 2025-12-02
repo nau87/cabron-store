@@ -318,15 +318,24 @@ export default function POSPage() {
       // Decrementar stock de variantes (si aplica) o productos
       for (const item of cart) {
         if (item.variant_id) {
-          // Decrementar stock de variante
-          const success = await supabase.rpc('decrement_variant_stock', {
+          // Decrementar stock de variante usando RPC mejorado
+          const { data, error } = await supabase.rpc('decrement_variant_stock', {
             p_variant_id: item.variant_id,
             p_quantity: item.quantity
           });
           
-          if (!success) {
-            throw new Error(`No hay suficiente stock del producto ${item.product.name}`);
+          if (error) {
+            console.error('Error en decrement_variant_stock:', error);
+            throw new Error(`Error al actualizar stock: ${error.message}`);
           }
+
+          // La función ahora retorna una tabla con success, new_stock, error_message
+          const result = data?.[0];
+          if (!result?.success) {
+            throw new Error(result?.error_message || `No hay suficiente stock del producto ${item.product.name}`);
+          }
+
+          console.log(`Stock actualizado: ${item.product.name} - ${item.product.size || 'N/A'} → ${result.new_stock}`);
         } else {
           // Decrementar stock del producto directamente (sin variantes)
           const { error: stockError } = await supabase
@@ -518,29 +527,37 @@ export default function POSPage() {
         return;
       }
 
-      // Incrementar stock usando RPC
-      const { error: incrementError } = await supabase.rpc('increment_variant_stock', {
+      // Incrementar stock usando RPC mejorado
+      const { data, error: incrementError } = await supabase.rpc('increment_variant_stock', {
         p_variant_id: variant.id,
         p_quantity: returnQuantity
       });
 
-      if (incrementError) throw incrementError;
+      if (incrementError) {
+        console.error('Error en increment_variant_stock:', incrementError);
+        throw new Error(`Error al incrementar stock: ${incrementError.message}`);
+      }
 
-      const newStock = variant.stock + returnQuantity;
+      // La función retorna una tabla con success, new_stock, error_message
+      const result = data?.[0];
+      if (!result?.success) {
+        throw new Error(result?.error_message || 'Error al procesar la devolución');
+      }
+
+      const newStock = result.new_stock;
 
       // Registrar en historial de inventario
       await supabase
         .from('inventory_history')
         .insert({
           product_id: product.id,
-          variant_id: variant.id,
           change_type: 'return',
           quantity_change: returnQuantity,
           change_amount: returnQuantity,
           previous_stock: variant.stock,
           new_stock: newStock,
           stock_after: newStock,
-          reason: `Devolución - SKU: ${returnSku} Talle: ${returnSize}`,
+          reason: `Devolución manual - SKU: ${returnSku} Talle: ${returnSize}`,
         });
 
       alert(`✅ Devolución procesada!\nProducto: ${product.name} - Talle ${returnSize}\nStock actualizado: ${newStock}`);

@@ -122,13 +122,20 @@ export async function POST(request: NextRequest) {
           // Actualizar el stock de cada producto
           for (const item of orderItems) {
             if (item.variant_id) {
-              const { error: stockError } = await supabase.rpc('decrement_variant_stock', {
+              const { data, error: stockError } = await supabase.rpc('decrement_variant_stock', {
                 p_variant_id: item.variant_id,
                 p_quantity: item.quantity
               });
 
               if (stockError) {
                 console.error(`Error updating stock for variant ${item.variant_id}:`, stockError);
+              } else {
+                const result = data?.[0];
+                if (!result?.success) {
+                  console.error(`Stock decrement failed: ${result?.error_message}`);
+                } else {
+                  console.log(`Stock updated for variant ${item.variant_id}: ${result.new_stock}`);
+                }
               }
             }
           }

@@ -202,14 +202,22 @@ export default function CheckoutPage() {
       // Decrementar el stock de cada producto usando variantId
       for (const item of cartItems) {
         if (item.variantId) {
-          const { error: stockError } = await supabase.rpc('decrement_variant_stock', {
+          const { data, error: stockError } = await supabase.rpc('decrement_variant_stock', {
             p_variant_id: item.variantId,
             p_quantity: item.quantity
           });
 
           if (stockError) {
             console.error(`Error actualizando stock para variante ${item.variantId}:`, stockError);
+            throw new Error(`Error al actualizar stock: ${stockError.message}`);
           }
+
+          const result = data?.[0];
+          if (!result?.success) {
+            throw new Error(result?.error_message || `No hay stock suficiente de ${item.product.name}`);
+          }
+
+          console.log(`Stock descontado: ${item.product.name} → ${result.new_stock}`);
         }
       }
 
