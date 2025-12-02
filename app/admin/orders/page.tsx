@@ -14,7 +14,14 @@ interface Order {
   shipping_address: string;
   total: number;
   status: string;
-  items: any[];
+  items: {
+    product_id: string;
+    quantity: number;
+    price: number;
+    size?: string;
+    product_name?: string;
+  }[];
+  payment_id?: string;
   created_at: string;
 }
 
@@ -46,6 +53,7 @@ export default function OrdersPage() {
       let query = supabase
         .from('orders')
         .select('*')
+        .neq('status', 'cancelled') // Filtrar pedidos cancelados
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
@@ -78,6 +86,39 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Error updating order:', error);
       alert('Error al actualizar el estado');
+    }
+  };
+
+  const handleCancelOrder = async (order: Order) => {
+    if (!confirm(`¿Estás seguro de cancelar el pedido de ${order.customer_name}?`)) return;
+
+    try {
+      // Cambiar status a 'cancelled'
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', order.id);
+
+      if (updateError) throw updateError;
+
+      // Restaurar el stock de cada producto
+      for (const item of order.items) {
+        const { error: stockError } = await supabase.rpc('increment_stock', {
+          product_id: item.product_id,
+          quantity: item.quantity
+        });
+
+        if (stockError) {
+          console.error(`Error restoring stock for product ${item.product_id}:`, stockError);
+        }
+      }
+
+      alert('Pedido cancelado y stock restaurado');
+      setSelectedOrder(null);
+      loadOrders();
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      alert('Error al cancelar el pedido');
     }
   };
 
@@ -218,6 +259,9 @@ export default function OrdersPage() {
                     Estado
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase">
+                    Items
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase">
                     Acciones
                   </th>
                 </tr>
@@ -253,13 +297,24 @@ export default function OrdersPage() {
                         {getStatusLabel(order.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-900 dark:text-white">
+                      {order.items.length} producto{order.items.length !== 1 ? 's' : ''}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                       <button
                         onClick={() => setSelectedOrder(order)}
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                       >
-                        Ver detalles →
+                        Ver detalles
                       </button>
+                      {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                        <button
+                          onClick={() => handleCancelOrder(order)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                        >
+                          Cancelar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -357,12 +412,22 @@ export default function OrdersPage() {
               </select>
             </div>
 
-            <button
-              onClick={() => setSelectedOrder(null)}
-              className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-3 rounded-lg font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
-            >
-              Cerrar
-            </button>
+            <div className="flex gap-3">
+              {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
+                <button
+                  onClick={() => handleCancelOrder(selectedOrder)}
+                  className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                >
+                  ❌ Cancelar Pedido
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-3 rounded-lg font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

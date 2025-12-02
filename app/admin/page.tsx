@@ -22,34 +22,13 @@ interface Product {
   material?: string;
 }
 
-interface Order {
-  id: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  shipping_address: string;
-  total: number;
-  status: string;
-  items: {
-    product_id: string;
-    quantity: number;
-    price: number;
-    size?: string;
-  }[];
-  payment_id?: string;
-  created_at: string;
-}
-
 export default function AdminPage() {
   const { isAdmin, loading } = useAuth();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [loadingOrders, setLoadingOrders] = useState(true);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -60,7 +39,6 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAdmin) {
       loadProducts();
-      loadOrders();
     }
   }, [isAdmin]);
 
@@ -80,22 +58,6 @@ export default function AdminPage() {
     }
   };
 
-  const loadOrders = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setOrders(data || []);
-    } catch (error) {
-      console.error('Error loading orders:', error);
-    } finally {
-      setLoadingOrders(false);
-    }
-  };
-
   const handleDeleteProduct = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar este producto?')) return;
 
@@ -110,39 +72,6 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error deleting product:', error);
       alert('Error al eliminar el producto');
-    }
-  };
-
-  const handleCancelOrder = async (order: Order) => {
-    if (!confirm(`¿Estás seguro de cancelar el pedido de ${order.customer_name}?`)) return;
-
-    try {
-      // Cambiar status a 'cancelled'
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', order.id);
-
-      if (updateError) throw updateError;
-
-      // Restaurar el stock de cada producto
-      for (const item of order.items) {
-        const { error: stockError } = await supabase.rpc('increment_stock', {
-          product_id: item.product_id,
-          quantity: item.quantity
-        });
-
-        if (stockError) {
-          console.error(`Error restoring stock for product ${item.product_id}:`, stockError);
-        }
-      }
-
-      alert('Pedido cancelado y stock restaurado');
-      loadOrders();
-      loadProducts();
-    } catch (error) {
-      console.error('Error cancelling order:', error);
-      alert('Error al cancelar el pedido');
     }
   };
 
@@ -168,52 +97,21 @@ export default function AdminPage() {
               Gestiona tus productos e inventario
             </p>
           </div>
-          {activeTab === 'products' && (
-            <button
-              onClick={() => {
-                setEditingProduct(null);
-                setIsModalOpen(true);
-              }}
-              className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-6 py-3 rounded-lg font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
-            >
-              + Agregar Producto
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setEditingProduct(null);
+              setIsModalOpen(true);
+            }}
+            className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-6 py-3 rounded-lg font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
+          >
+            + Agregar Producto
+          </button>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-zinc-200 dark:border-zinc-700">
-          <div className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`pb-4 px-2 font-medium transition-colors ${
-                activeTab === 'products'
-                  ? 'border-b-2 border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
-                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
-              }`}
-            >
-              Productos ({products.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('orders')}
-              className={`pb-4 px-2 font-medium transition-colors ${
-                activeTab === 'orders'
-                  ? 'border-b-2 border-zinc-900 dark:border-white text-zinc-900 dark:text-white'
-                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
-              }`}
-            >
-              Pedidos ({orders.length})
-            </button>
-          </div>
-        </div>
-
-        {/* Tabla de Productos */}
-        {activeTab === 'products' && (
-          <>
-            {loadingProducts ? (
-              <p className="text-center text-zinc-600 dark:text-zinc-400">Cargando productos...</p>
-            ) : (
-              <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-md overflow-hidden">
+        {loadingProducts ? (
+          <p className="text-center text-zinc-600 dark:text-zinc-400">Cargando productos...</p>
+        ) : (
+          <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
               <thead className="bg-zinc-100 dark:bg-zinc-700">
                 <tr>
@@ -294,101 +192,6 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
-        )}
-          </>
-        )}
-
-        {/* Tabla de Pedidos */}
-        {activeTab === 'orders' && (
-          <>
-            {loadingOrders ? (
-              <p className="text-center text-zinc-600 dark:text-zinc-400">Cargando pedidos...</p>
-            ) : orders.length === 0 ? (
-              <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-md p-8 text-center">
-                <p className="text-zinc-600 dark:text-zinc-400">No hay pedidos aún</p>
-              </div>
-            ) : (
-              <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-md overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-zinc-100 dark:bg-zinc-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                        Cliente
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                        Fecha
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                        Items
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                    {orders.map((order) => (
-                      <tr key={order.id}>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                            {order.customer_name}
-                          </div>
-                          <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                            {order.customer_email}
-                          </div>
-                          <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                            {order.customer_phone}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-900 dark:text-white">
-                          {new Date(order.created_at).toLocaleDateString('es-AR')}
-                          <br />
-                          <span className="text-zinc-500 dark:text-zinc-400 text-xs">
-                            {new Date(order.created_at).toLocaleTimeString('es-AR')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-white">
-                          ${order.total}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              order.status === 'approved'
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                : order.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            }`}
-                          >
-                            {order.status === 'approved' ? 'Aprobado' : order.status === 'pending' ? 'Pendiente' : 'Cancelado'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-zinc-900 dark:text-white">
-                          {order.items.length} producto{order.items.length !== 1 ? 's' : ''}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {order.status !== 'cancelled' && (
-                            <button
-                              onClick={() => handleCancelOrder(order)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                            >
-                              Cancelar
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
         )}
 
       {isModalOpen && (
