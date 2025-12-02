@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +20,7 @@ export async function POST(request: NextRequest) {
     const payer = body.payer || body.formData?.payer;
     const description = body.description;
     const metadata = body.metadata;
+    const orderItems = body.orderItems; // Nuevo: recibir items del carrito
 
     // Validar campos requeridos
     if (!token || !transaction_amount || !payment_method_id || !payer?.email) {
@@ -82,12 +89,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Si el pago fue aprobado, crear la orden y actualizar el stock
+    if (data.status === 'approved' && orderItems && metadata) {
+      try {
+        // Crear la dirección completa
+        const fullAddress = `${metadata.shipping_address}, ${metadata.city}, ${metadata.province}, CP: ${metadata.postal_code}`;
+
+        // Crear la orden en Supabase
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .insert([
+            {
+              customer_name: metadata.customer_name,
+              customer_email: payer.email,
+              customer_phone: metadata.customer_phone,
+              shipping_address: fullAddress,
+              total: transaction_amount,
+              status: 'approved',
+              items: orderItems,
+              user_id: metadata.user_id || null,
+              payment_id: data.id, // Guardar el ID del pago de Mercado Pago
+            }
+          ])
+          .select()
+          .single();
+
+        if (orderError) {
+          console.error('Error creating order:', orderError);
+        } else {
+          console.log('Order created:', orderData);
+
+          // Actualizar el stock de cada producto
+          for (const item of orderItems) {
+            const { error: stockError } = await supabase.rpc('decrement_stock', {
+              product_id: item.product_id,
+              quantity: item.quantity
+            });
+
+            if (stockError) {
+              console.error(`Error updating stock for product ${item.product_id}:`, stockError);
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        // No fallar el pago si hay error en DB, pero loguearlo
+      }
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error in process-payment:', error);
     return NextResponse.json(
       { error: error.message || 'Error interno del servidor' },
       { status: 500 }
+    );
+  }
+}
     );
   }
 }

@@ -129,34 +129,9 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      // Guardar orden pendiente en Supabase
-      const orderItems = cartItems.map(item => ({
-        product_id: item.product.id,
-        quantity: item.quantity,
-        price: item.product.price,
-        size: item.selectedSize
-      }));
-
-      const fullAddress = `${formData.shipping_address}, ${formData.city}, ${formData.province}, CP: ${formData.postal_code}`;
-
-      await supabase
-        .from('orders')
-        .insert([
-          {
-            customer_name: formData.customer_name,
-            customer_email: formData.customer_email,
-            customer_phone: formData.customer_phone,
-            shipping_address: fullAddress,
-            total: cartTotal,
-            status: 'pending',
-            items: orderItems,
-            user_id: user?.id || null,
-          }
-        ]);
-
-      // Mostrar el Payment Brick
+      // Ya no creamos la orden aquí, solo mostramos el Payment Brick
+      // La orden se creará en el backend cuando el pago sea exitoso
       setShowPaymentBrick(true);
-
     } catch (error) {
       console.error('Error:', error);
       alert('Hubo un error al procesar tu pedido. Por favor intenta de nuevo.');
@@ -172,6 +147,14 @@ export default function CheckoutPage() {
       const payerFirstName = paymentFormData?.payer?.first_name || formData.customer_name.split(' ')[0] || '';
       const payerLastName = paymentFormData?.payer?.last_name || formData.customer_name.split(' ').slice(1).join(' ') || '';
 
+      // Preparar los items del carrito
+      const orderItems = cartItems.map(item => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price,
+        size: item.selectedSize
+      }));
+
       const response = await fetch('/api/mercadopago/process-payment', {
         method: 'POST',
         headers: {
@@ -186,6 +169,7 @@ export default function CheckoutPage() {
             first_name: payerFirstName,
             last_name: payerLastName,
           },
+          orderItems, // Enviar los items al backend
           metadata: {
             customer_name: formData.customer_name,
             customer_phone: formData.customer_phone,
