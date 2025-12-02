@@ -170,32 +170,36 @@ export default function Header({ searchTerm, onSearchChange }: HeaderProps = {})
                 </button>
               )}
               
-              <button
-                onClick={() => setIsCartOpen(!isCartOpen)}
-                className="relative"
-              >
-                <span className="text-2xl">🛒</span>
-                {cartItemsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartItemsCount}
-                  </span>
-                )}
-              </button>
+              {!isAdmin && (
+                <button
+                  onClick={() => setIsCartOpen(!isCartOpen)}
+                  className="relative"
+                >
+                  <span className="text-2xl">🛒</span>
+                  {cartItemsCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartItemsCount}
+                    </span>
+                  )}
+                </button>
+              )}
             </nav>
 
             {/* Mobile: Cart and Menu Button */}
             <div className="lg:hidden flex items-center gap-3 flex-shrink-0">
-              <button
-                onClick={() => setIsCartOpen(!isCartOpen)}
-                className="relative"
-              >
-                <span className="text-2xl">🛒</span>
-                {cartItemsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartItemsCount}
-                  </span>
-                )}
-              </button>
+              {!isAdmin && (
+                <button
+                  onClick={() => setIsCartOpen(!isCartOpen)}
+                  className="relative"
+                >
+                  <span className="text-2xl">🛒</span>
+                  {cartItemsCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartItemsCount}
+                    </span>
+                  )}
+                </button>
+              )}
               
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Product } from '@/types';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +18,7 @@ interface ProductVariant {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { isAdmin } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
   const [showSizeModal, setShowSizeModal] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
@@ -123,19 +125,21 @@ export default function ProductCard({ product }: ProductCardProps) {
             ${product.price.toLocaleString('es-AR')}
           </span>
           
-          <button
-            onClick={handleAddToCart}
-            disabled={product.stock === 0 || isAdding}
-            className={`px-4 py-2 border-2 font-bold text-xs uppercase tracking-wider transition-all duration-300 ${
-              product.stock === 0
-                ? 'border-zinc-300 text-zinc-400 cursor-not-allowed'
-                : isAdding
-                ? 'border-black bg-black text-white'
-                : 'border-black text-black hover:bg-black hover:text-white'
-            }`}
-          >
-            {product.stock === 0 ? 'Agotado' : isAdding ? '✓ Agregado' : 'Agregar'}
-          </button>
+          {!isAdmin && (
+            <button
+              onClick={handleAddToCart}
+              disabled={product.stock === 0 || isAdding}
+              className={`px-4 py-2 border-2 font-bold text-xs uppercase tracking-wider transition-all duration-300 ${
+                product.stock === 0
+                  ? 'border-zinc-300 text-zinc-400 cursor-not-allowed'
+                  : isAdding
+                  ? 'border-black bg-black text-white'
+                  : 'border-black text-black hover:bg-black hover:text-white'
+              }`}
+            >
+              {product.stock === 0 ? 'Agotado' : isAdding ? '✓ Agregado' : 'Agregar'}
+            </button>
+          )}
         </div>
         
         <p className="text-xs text-zinc-500 mt-2">
@@ -203,17 +207,19 @@ export default function ProductCard({ product }: ProductCardProps) {
               >
                 Cancelar
               </button>
-              <button
-                onClick={() => addToCart(selectedSize, selectedVariantId)}
-                disabled={!selectedSize}
-                className={`flex-1 py-3 border-2 font-bold text-sm uppercase tracking-wider transition-all ${
-                  selectedSize
-                    ? 'border-black bg-black text-white hover:bg-zinc-800'
-                    : 'border-zinc-300 text-zinc-400 cursor-not-allowed'
-                }`}
-              >
-                Agregar
-              </button>
+              {!isAdmin && (
+                <button
+                  onClick={() => addToCart(selectedSize, selectedVariantId)}
+                  disabled={!selectedSize}
+                  className={`flex-1 py-3 border-2 font-bold text-sm uppercase tracking-wider transition-all ${
+                    selectedSize
+                      ? 'border-black bg-black text-white hover:bg-zinc-800'
+                      : 'border-zinc-300 text-zinc-400 cursor-not-allowed'
+                  }`}
+                >
+                  Agregar
+                </button>
+              )}
             </div>
           </div>
         </div>
