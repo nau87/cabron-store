@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import AdminNav from '@/components/AdminNav';
 import Image from 'next/image';
 
 interface Product {
@@ -348,10 +349,12 @@ export default function POSPage() {
   const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-      <div className="flex h-screen">
-        {/* Productos - Lado Izquierdo */}
-        <div className="flex-1 p-6 overflow-y-auto">
+    <>
+      <AdminNav />
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
+        <div className="flex h-screen">
+          {/* Productos - Lado Izquierdo */}
+          <div className="flex-1 p-6 overflow-y-auto">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">
               🏪 Punto de Venta
@@ -755,6 +758,7 @@ export default function POSPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

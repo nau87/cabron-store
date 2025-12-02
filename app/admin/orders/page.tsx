@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import AdminNav from '@/components/AdminNav';
 import Image from 'next/image';
 
 interface Order {
@@ -177,8 +178,10 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <AdminNav />
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">
