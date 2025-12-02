@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import AdminNav from '@/components/AdminNav';
 
@@ -45,6 +45,9 @@ export default function VentasPage() {
   const [loading, setLoading] = useState(true);
   const [saleTypeFilter, setSaleTypeFilter] = useState<SaleType>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [selectedSale, setSelectedSale] = useState<(LocalSale & { type: 'pos' }) | (OnlineOrder & { type: 'online' }) | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     loadSales();
@@ -158,6 +161,153 @@ export default function VentasPage() {
       style: 'currency',
       currency: 'ARS',
     }).format(price);
+  };
+
+  const handleShowDetail = (sale: any) => {
+    setSelectedSale(sale);
+    setShowDetailModal(true);
+    
+    // Generar comprobante en canvas después de que el modal se renderice
+    setTimeout(() => generateReceiptImage(), 100);
+  };
+
+  const generateReceiptImage = () => {
+    if (!selectedSale || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Configurar canvas
+    canvas.width = 400;
+    const itemsHeight = selectedSale.items.length * 30;
+    canvas.height = selectedSale.type === 'pos' ? 600 + itemsHeight : 550 + itemsHeight;
+
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Configuración de texto
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+
+    let yPos = 30;
+
+    // Header
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('CABRÓN STORE', canvas.width / 2, yPos);
+    yPos += 30;
+
+    ctx.font = '14px Arial';
+    ctx.fillText('Comprobante de Venta', canvas.width / 2, yPos);
+    yPos += 40;
+
+    // Línea separadora
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 30;
+
+    // Información
+    ctx.textAlign = 'left';
+    ctx.font = '12px Arial';
+
+    if (selectedSale.type === 'pos') {
+      const posSale = selectedSale as LocalSale & { type: 'pos' };
+      ctx.fillText(`Nº Ticket: ${posSale.sale_number}`, 20, yPos);
+      yPos += 20;
+      ctx.fillText(`Cliente: ${posSale.customer_name}`, 20, yPos);
+    } else {
+      const onlineSale = selectedSale as OnlineOrder & { type: 'online' };
+      ctx.fillText(`Cliente: ${onlineSale.customer_name}`, 20, yPos);
+      yPos += 20;
+      if (onlineSale.customer_email) {
+        ctx.fillText(`Email: ${onlineSale.customer_email}`, 20, yPos);
+        yPos += 20;
+      }
+    }
+
+    yPos += 5;
+    ctx.fillText(`Fecha: ${formatDate(selectedSale.created_at)}`, 20, yPos);
+    yPos += 30;
+
+    // Productos
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText('PRODUCTOS', 20, yPos);
+    yPos += 20;
+
+    ctx.font = '11px Arial';
+    selectedSale.items.forEach(item => {
+      const itemText = `${item.quantity}x ${item.name}`;
+      const priceText = `$${(item.price * item.quantity).toFixed(2)}`;
+      
+      ctx.textAlign = 'left';
+      ctx.fillText(itemText, 20, yPos);
+      ctx.textAlign = 'right';
+      ctx.fillText(priceText, canvas.width - 20, yPos);
+      yPos += 25;
+    });
+
+    yPos += 10;
+
+    // Línea separadora
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 20;
+
+    // Total
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('TOTAL:', 20, yPos);
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${selectedSale.total.toFixed(2)}`, canvas.width - 20, yPos);
+    yPos += 30;
+
+    // Método de pago
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'left';
+    const paymentMethod = selectedSale.type === 'pos' 
+      ? (selectedSale as LocalSale).payment_method 
+      : 'Mercado Pago';
+    ctx.fillText(`Método de pago: ${paymentMethod}`, 20, yPos);
+    yPos += 40;
+
+    // Footer
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 20;
+
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('¡Gracias por su compra!', canvas.width / 2, yPos);
+    yPos += 15;
+    ctx.fillText('www.cabronstore.com', canvas.width / 2, yPos);
+  };
+
+  const downloadReceipt = () => {
+    if (!canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const fileName = selectedSale?.type === 'pos' 
+        ? `comprobante-${(selectedSale as LocalSale).sale_number}.png`
+        : `comprobante-${selectedSale?.id}.png`;
+      link.download = fileName;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
   };
 
   const totals = calculateTotals();
@@ -292,7 +442,11 @@ export default function VentasPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredSales.map((sale) => (
-                    <tr key={`${sale.type}-${sale.id}`} className="hover:bg-gray-50">
+                    <tr 
+                      key={`${sale.type}-${sale.id}`} 
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => handleShowDetail(sale)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatDate(sale.created_at)}
                       </td>
@@ -342,6 +496,57 @@ export default function VentasPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de Detalle de Venta */}
+      {showDetailModal && selectedSale && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">
+                📄 Detalle de Venta
+              </h2>
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setSelectedSale(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Canvas del comprobante */}
+              <div className="flex justify-center mb-4">
+                <canvas 
+                  ref={canvasRef} 
+                  className="border border-gray-300 rounded shadow-lg"
+                />
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={downloadReceipt}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  📥 Descargar Comprobante
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    setSelectedSale(null);
+                  }}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
