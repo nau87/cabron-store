@@ -51,7 +51,10 @@ CREATE POLICY "Admins can view all profiles"
 
 -- 6. Crear función para insertar perfil automáticamente al registrarse
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 BEGIN
   INSERT INTO public.user_profiles (id, full_name, email, phone, role)
   VALUES (
@@ -63,7 +66,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- 7. Crear trigger para ejecutar la función
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
