@@ -100,8 +100,7 @@ BEGIN
     SELECT COALESCE(SUM(stock), 0)
     FROM product_variants
     WHERE product_id = COALESCE(NEW.product_id, OLD.product_id)
-  ),
-  updated_at = NOW()
+  )
   WHERE id = COALESCE(NEW.product_id, OLD.product_id);
 
   RETURN COALESCE(NEW, OLD);
