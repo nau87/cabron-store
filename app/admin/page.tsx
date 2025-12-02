@@ -254,10 +254,8 @@ function ProductModal({
     description: product?.description || '',
     price: product?.price || 0,
     image_url: product?.image_url || '',
-    stock: product?.stock || 0,
     category: product?.category || 'Remeras',
     sku: product?.sku || '',
-    size: product?.size || '',
     color: product?.color || '',
     material: product?.material || '',
   });
@@ -347,6 +345,7 @@ function ProductModal({
 
       const productData = { 
         ...formData, 
+        stock: 0, // Stock se maneja por variantes
         image_url: imageUrls[0], // Primera imagen como principal
         images: imageUrls // Array completo
       };
@@ -436,28 +435,33 @@ function ProductModal({
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Stock *
-              </label>
-              <input
-                type="number"
-                value={formData.stock || ''}
-                onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                SKU (Código)
+                SKU (Código) *
               </label>
               <input
                 type="text"
                 value={formData.sku}
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                placeholder="Ej: REM-001-XL"
+                placeholder="Ej: CAB-001"
                 className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                required
               />
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                Este SKU será compartido por todas las variantes de talles
+              </p>
+            </div>
+
+            <div className="col-span-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <span className="text-2xl">ℹ️</span>
+                <div>
+                  <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                    ¿Producto con talles/variantes?
+                  </p>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    Después de crear el producto, usa el botón <strong className="text-green-600 dark:text-green-400">"Variantes"</strong> para agregar los talles (S, M, L, XL) y su stock individual. El stock total se calculará automáticamente.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -481,20 +485,7 @@ function ProductModal({
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Talle
-              </label>
-              <input
-                type="text"
-                value={formData.size}
-                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                placeholder="S, M, L, XL..."
-                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Color
+                Color (opcional)
               </label>
               <input
                 type="text"
@@ -507,7 +498,7 @@ function ProductModal({
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Material
+                Material (opcional)
               </label>
               <input
                 type="text"
