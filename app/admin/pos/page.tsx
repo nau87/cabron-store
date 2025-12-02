@@ -520,8 +520,8 @@ export default function POSPage() {
 
       // Incrementar stock usando RPC
       const { error: incrementError } = await supabase.rpc('increment_variant_stock', {
-        variant_id: variant.id,
-        quantity_to_increment: returnQuantity
+        p_variant_id: variant.id,
+        p_quantity: returnQuantity
       });
 
       if (incrementError) throw incrementError;
