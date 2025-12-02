@@ -301,15 +301,36 @@ export default function CuentasCorrientesPage() {
           const itemName = useStoredData ? item.name : (item.name || 'Producto eliminado');
           const itemQuantity = item.quantity;
           const itemPrice = item.price || item.unit_price;
+          const itemDiscount = item.discount_percentage || item.discount || 0;
           
           const itemText = `${itemQuantity}x ${itemName}`;
-          const priceText = `$${(itemPrice * itemQuantity).toFixed(2)}`;
+          const originalPrice = itemPrice * itemQuantity;
+          const priceText = `$${originalPrice.toFixed(2)}`;
           
           ctx.textAlign = 'left';
           ctx.fillText(itemText, 20, yPos);
           ctx.textAlign = 'right';
           ctx.fillText(priceText, canvas.width - 20, yPos);
-          yPos += 25;
+          yPos += 20;
+          
+          // Mostrar descuento si existe
+          if (itemDiscount > 0) {
+            const discountAmount = originalPrice * (itemDiscount / 100);
+            const discountText = `  Descuento ${itemDiscount}%`;
+            const discountAmountText = `-$${discountAmount.toFixed(2)}`;
+            
+            ctx.fillStyle = '#666666';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(discountText, 30, yPos);
+            ctx.textAlign = 'right';
+            ctx.fillText(discountAmountText, canvas.width - 20, yPos);
+            ctx.fillStyle = '#000000';
+            ctx.font = '11px Arial';
+            yPos += 20;
+          } else {
+            yPos += 5;
+          }
         });
       } else {
         ctx.textAlign = 'left';
