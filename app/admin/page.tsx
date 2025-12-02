@@ -292,41 +292,71 @@ function ProductModal({
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  const uploadImages = async (): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
+  const moveImageToFirst = (index: number) => {
+    if (index === 0) return; // Ya es la primera
+    
+    setImagePreviews(prev => {
+      const newPreviews = [...prev];
+      const [movedImage] = newPreviews.splice(index, 1);
+      newPreviews.unshift(movedImage);
+      return newPreviews;
+    });
 
-    // Mantener URLs existentes que no son previews locales
-    const existingUrls = imagePreviews.filter(url => url.startsWith('http'));
-    uploadedUrls.push(...existingUrls);
-
-    // Subir nuevas imágenes
-    setUploadingImage(true);
-    try {
-      for (const file of imageFiles) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('product-images')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(filePath);
-
-        uploadedUrls.push(publicUrl);
+    setImageFiles(prev => {
+      const newFiles = [...prev];
+      if (index < newFiles.length) {
+        const [movedFile] = newFiles.splice(index, 1);
+        newFiles.unshift(movedFile);
       }
+      return newFiles;
+    });
+  };
+
+  const uploadImages = async (): Promise<string[]> => {
+    setUploadingImage(true);
+    
+    try {
+      const finalUrls: string[] = [];
+      let fileCounter = 0;
+
+      // Procesar imagePreviews en orden, subiendo solo las nuevas
+      for (const preview of imagePreviews) {
+        if (preview.startsWith('http')) {
+          // URL existente, mantenerla
+          finalUrls.push(preview);
+        } else {
+          // Preview local (data:image), subir el archivo correspondiente
+          const file = imageFiles[fileCounter];
+          fileCounter++;
+          
+          if (!file) continue;
+          
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('product-images')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(filePath);
+
+          finalUrls.push(publicUrl);
+        }
+      }
+
+      return finalUrls;
     } catch (error) {
       console.error('Error uploading images:', error);
       alert('Error al subir las imágenes');
+      return [];
     } finally {
       setUploadingImage(false);
     }
-
-    return uploadedUrls;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -513,6 +543,9 @@ function ProductModal({
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Imágenes del Producto * (Máximo 3)
               </label>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
+                La primera imagen será la principal. Usa ⭐ para cambiar el orden.
+              </p>
               
               {/* Previews de imágenes */}
               {imagePreviews.length > 0 && (
@@ -525,16 +558,29 @@ function ProductModal({
                         fill
                         className="object-cover"
                       />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        ×
-                      </button>
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        {index !== 0 && (
+                          <button
+                            type="button"
+                            onClick={() => moveImageToFirst(index)}
+                            title="Establecer como principal"
+                            className="bg-green-500 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-green-600"
+                          >
+                            ⭐
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          title="Eliminar imagen"
+                          className="bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
                       {index === 0 && (
-                        <span className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                          Principal
+                        <span className="absolute bottom-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded font-semibold shadow-lg">
+                          ⭐ Principal
                         </span>
                       )}
                     </div>
