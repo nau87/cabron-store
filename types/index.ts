@@ -18,6 +18,7 @@ export interface CartItem {
   product: Product;
   quantity: number;
   selectedSize?: string;
+  variantId?: string;
 }
 
 export interface OrderItem {
