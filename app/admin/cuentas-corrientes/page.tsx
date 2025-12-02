@@ -20,7 +20,14 @@ interface Transaction {
   amount: number;
   description: string;
   payment_method?: string;
+  sale_id?: string;
   created_at: string;
+  items?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
 }
 
 export default function CuentasCorrientesPage() {
@@ -80,7 +87,27 @@ export default function CuentasCorrientesPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTransactions(data || []);
+      
+      // Para cada transacción de tipo 'sale', cargar los items de la venta
+      const transactionsWithItems = await Promise.all(
+        (data || []).map(async (transaction) => {
+          if (transaction.type === 'sale' && transaction.sale_id) {
+            const { data: saleData } = await supabase
+              .from('local_sales')
+              .select('items')
+              .eq('id', transaction.sale_id)
+              .single();
+            
+            return {
+              ...transaction,
+              items: saleData?.items || []
+            };
+          }
+          return transaction;
+        })
+      );
+      
+      setTransactions(transactionsWithItems);
     } catch (error) {
       console.error('Error loading transactions:', error);
     } finally {
@@ -182,9 +209,14 @@ export default function CuentasCorrientesPage() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Calcular altura dinámica basada en items
+    const itemsCount = selectedTransaction.items?.length || 0;
+    const itemsHeight = itemsCount * 25;
+    const baseHeight = selectedTransaction.type === 'sale' ? 400 : 350;
+    
     // Configurar canvas
     canvas.width = 400;
-    canvas.height = selectedTransaction.type === 'sale' ? 500 : 400;
+    canvas.height = baseHeight + itemsHeight;
 
     // Fondo blanco
     ctx.fillStyle = '#ffffff';
@@ -231,12 +263,24 @@ export default function CuentasCorrientesPage() {
     if (selectedTransaction.type === 'sale') {
       // Para ventas
       ctx.font = 'bold 12px Arial';
-      ctx.fillText('COMPRA A CUENTA CORRIENTE', 20, yPos);
-      yPos += 25;
+      ctx.fillText('PRODUCTOS', 20, yPos);
+      yPos += 20;
 
       ctx.font = '11px Arial';
-      if (selectedTransaction.description) {
-        ctx.fillText(selectedTransaction.description, 20, yPos);
+      if (selectedTransaction.items && selectedTransaction.items.length > 0) {
+        selectedTransaction.items.forEach(item => {
+          const itemText = `${item.quantity}x ${item.name}`;
+          const priceText = `$${(item.price * item.quantity).toFixed(2)}`;
+          
+          ctx.textAlign = 'left';
+          ctx.fillText(itemText, 20, yPos);
+          ctx.textAlign = 'right';
+          ctx.fillText(priceText, canvas.width - 20, yPos);
+          yPos += 25;
+        });
+      } else {
+        ctx.textAlign = 'left';
+        ctx.fillText('Sin detalle de productos', 20, yPos);
         yPos += 25;
       }
     } else {
