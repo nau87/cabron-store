@@ -226,6 +226,7 @@ export default function AdminPage() {
         <ProductVariantsManager
           productId={selectedProductForVariants.id}
           productName={selectedProductForVariants.name}
+          productSku={selectedProductForVariants.sku || ''}
           onClose={() => {
             setShowVariantsModal(false);
             setSelectedProductForVariants(null);

@@ -14,12 +14,14 @@ interface Variant {
 interface ProductVariantsManagerProps {
   productId: string;
   productName: string;
+  productSku: string;
   onClose: () => void;
 }
 
 export default function ProductVariantsManager({ 
   productId, 
-  productName, 
+  productName,
+  productSku,
   onClose 
 }: ProductVariantsManagerProps) {
   const [variants, setVariants] = useState<Variant[]>([]);
@@ -28,7 +30,6 @@ export default function ProductVariantsManager({
   
   // Formulario para nueva variante
   const [newVariant, setNewVariant] = useState({
-    sku: '',
     size: '',
     color: '',
     stock: 0,
@@ -68,7 +69,7 @@ export default function ProductVariantsManager({
         .from('product_variants')
         .insert([{
           product_id: productId,
-          sku: newVariant.sku.trim() || null,
+          sku: productSku, // Usar el SKU del producto base
           size: newVariant.size.trim().toUpperCase(),
           color: newVariant.color.trim() || null,
           stock: newVariant.stock,
@@ -77,18 +78,14 @@ export default function ProductVariantsManager({
       if (error) throw error;
 
       // Limpiar formulario
-      setNewVariant({ sku: '', size: '', color: '', stock: 0 });
+      setNewVariant({ size: '', color: '', stock: 0 });
       
       // Recargar variantes
       await loadVariants();
       alert('✅ Variante agregada exitosamente');
     } catch (error: any) {
       console.error('Error adding variant:', error);
-      if (error.code === '23505') {
-        alert('❌ Ya existe una variante con ese SKU');
-      } else {
-        alert('❌ Error al agregar variante');
-      }
+      alert('❌ Error al agregar variante');
     } finally {
       setSaving(false);
     }
@@ -161,7 +158,12 @@ export default function ProductVariantsManager({
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
               ➕ Agregar Nueva Variante
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="mb-3 text-sm text-zinc-600 dark:text-zinc-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+              <strong>SKU de este producto:</strong> {productSku || 'Sin SKU'}
+              <br />
+              <span className="text-xs">Todas las variantes heredarán este SKU automáticamente</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                   Talle *
@@ -171,18 +173,6 @@ export default function ProductVariantsManager({
                   value={newVariant.size}
                   onChange={(e) => setNewVariant({ ...newVariant, size: e.target.value })}
                   placeholder="XS, S, M, L, XL"
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  SKU (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={newVariant.sku}
-                  onChange={(e) => setNewVariant({ ...newVariant, sku: e.target.value })}
-                  placeholder="REM-001-XL"
                   className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                 />
               </div>
