@@ -111,35 +111,22 @@ export default function OrdersPage() {
     try {
       console.log('Cancelando pedido:', order.id);
       
-      // Cambiar status a 'cancelled'
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', order.id);
+      // Llamar a la API para cancelar el pedido
+      const response = await fetch('/api/orders/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId: order.id }),
+      });
 
-      if (updateError) {
-        console.error('Error updating order status:', updateError);
-        throw updateError;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al cancelar el pedido');
       }
 
-      console.log('Pedido actualizado a cancelled');
-
-      // Restaurar el stock de cada producto
-      for (const item of order.items) {
-        console.log(`Restaurando stock para producto ${item.product_id}, cantidad: ${item.quantity}`);
-        
-        const { error: stockError } = await supabase.rpc('increment_stock', {
-          product_id: item.product_id,
-          quantity: item.quantity
-        });
-
-        if (stockError) {
-          console.error(`Error restoring stock for product ${item.product_id}:`, stockError);
-          alert(`Error al restaurar stock del producto ${item.product_id}: ${stockError.message}`);
-        } else {
-          console.log(`Stock restaurado para producto ${item.product_id}`);
-        }
-      }
+      console.log('Respuesta de la API:', result);
 
       // Cerrar el modal primero
       setSelectedOrder(null);
@@ -148,7 +135,7 @@ export default function OrdersPage() {
       console.log('Recargando lista de pedidos...');
       await loadOrders();
       
-      alert('Pedido cancelado y stock restaurado exitosamente');
+      alert(result.message || 'Pedido cancelado exitosamente');
       
     } catch (error: any) {
       console.error('Error cancelling order:', error);
