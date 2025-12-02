@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
+import ProductVariantsManager from '@/components/ProductVariantsManager';
 import Image from 'next/image';
 
 interface Product {
@@ -29,6 +30,8 @@ export default function AdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [showVariantsModal, setShowVariantsModal] = useState(false);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -173,6 +176,16 @@ export default function AdminPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
                         onClick={() => {
+                          setSelectedProductForVariants(product);
+                          setShowVariantsModal(true);
+                        }}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                        title="Gestionar variantes (talles)"
+                      >
+                        Variantes
+                      </button>
+                      <button
+                        onClick={() => {
                           setEditingProduct(product);
                           setIsModalOpen(true);
                         }}
@@ -205,6 +218,18 @@ export default function AdminPage() {
             loadProducts();
             setIsModalOpen(false);
             setEditingProduct(null);
+          }}
+        />
+      )}
+
+      {showVariantsModal && selectedProductForVariants && (
+        <ProductVariantsManager
+          productId={selectedProductForVariants.id}
+          productName={selectedProductForVariants.name}
+          onClose={() => {
+            setShowVariantsModal(false);
+            setSelectedProductForVariants(null);
+            loadProducts(); // Recargar para actualizar stock total
           }}
         />
       )}
