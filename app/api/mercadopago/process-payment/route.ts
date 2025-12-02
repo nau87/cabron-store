@@ -5,11 +5,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Received payment request:', JSON.stringify(body, null, 2));
 
-    const { token, transaction_amount, installments, payment_method_id, payer, description, metadata } = body;
+    // Extraer datos del formData o del body directamente
+    const token = body.formData?.token || body.token;
+    const transaction_amount = body.transaction_amount || body.formData?.transaction_amount;
+    const installments = body.formData?.installments || body.installments;
+    const payment_method_id = body.formData?.payment_method_id || body.payment_method_id;
+    const issuer_id = body.formData?.issuer_id || body.issuer_id;
+    const payer = body.payer || body.formData?.payer;
+    const description = body.description;
+    const metadata = body.metadata;
 
     // Validar campos requeridos
     if (!token || !transaction_amount || !payment_method_id || !payer?.email) {
-      console.error('Missing required fields:', { token: !!token, transaction_amount, payment_method_id, payer_email: payer?.email });
+      console.error('Missing required fields:', { 
+        token: !!token, 
+        transaction_amount, 
+        payment_method_id, 
+        payer_email: payer?.email 
+      });
       return NextResponse.json(
         { error: 'Faltan campos requeridos para procesar el pago' },
         { status: 400 }
@@ -17,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Procesar el pago en Mercado Pago
-    const paymentData = {
+    const paymentData: any = {
       token,
       transaction_amount: Number(transaction_amount),
       installments: Number(installments) || 1,
@@ -32,6 +45,19 @@ export async function POST(request: NextRequest) {
       metadata: metadata || {},
       external_reference: `order_${Date.now()}`,
     };
+
+    // Agregar issuer_id si existe
+    if (issuer_id) {
+      paymentData.issuer_id = issuer_id;
+    }
+
+    // Agregar identification si existe
+    if (payer.identification) {
+      paymentData.payer.identification = {
+        type: payer.identification.type,
+        number: payer.identification.number,
+      };
+    }
 
     console.log('Sending to Mercado Pago:', JSON.stringify(paymentData, null, 2));
 
