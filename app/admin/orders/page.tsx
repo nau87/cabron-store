@@ -112,22 +112,43 @@ export default function OrdersPage() {
     try {
       console.log('Cancelando pedido:', order.id);
       
-      // Llamar a la API para cancelar el pedido
-      const response = await fetch('/api/orders/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ orderId: order.id }),
-      });
+      // Actualizar directamente en Supabase (sin API intermedia)
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', order.id);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Error al cancelar el pedido');
+      if (updateError) {
+        console.error('Error updating order status:', updateError);
+        throw new Error(`Error al cancelar: ${updateError.message}`);
       }
 
-      console.log('Respuesta de la API:', result);
+      console.log('Pedido actualizado a cancelled');
+
+      // Restaurar el stock de cada producto
+      for (const item of order.items) {
+        console.log(`Restaurando stock para producto ${item.product_id}, cantidad: ${item.quantity}`);
+        
+        // Incrementar stock directamente
+        const { data: product } = await supabase
+          .from('products')
+          .select('stock')
+          .eq('id', item.product_id)
+          .single();
+
+        if (product) {
+          const { error: stockError } = await supabase
+            .from('products')
+            .update({ stock: product.stock + item.quantity })
+            .eq('id', item.product_id);
+
+          if (stockError) {
+            console.error(`Error restoring stock for product ${item.product_id}:`, stockError);
+          } else {
+            console.log(`Stock restaurado para producto ${item.product_id}`);
+          }
+        }
+      }
 
       // Cerrar el modal primero
       setSelectedOrder(null);
@@ -136,7 +157,7 @@ export default function OrdersPage() {
       console.log('Recargando lista de pedidos...');
       await loadOrders();
       
-      alert(result.message || 'Pedido cancelado exitosamente');
+      alert('Pedido cancelado y stock restaurado exitosamente');
       
     } catch (error: any) {
       console.error('Error cancelling order:', error);
