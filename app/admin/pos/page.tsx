@@ -491,44 +491,59 @@ export default function POSPage() {
     setProcessingReturn(true);
 
     try {
-      // Buscar producto por SKU y talle (SIN filtro de stock, puede estar en 0)
-      const { data: products, error: searchError } = await supabase
+      // Buscar producto por SKU
+      const { data: product, error: productError } = await supabase
         .from('products')
-        .select('*')
+        .select('id, name, sku')
         .eq('sku', returnSku.trim())
-        .eq('size', returnSize.trim())
         .single();
 
-      if (searchError || !products) {
-        alert('No se encontró un producto con ese SKU y talle');
+      if (productError || !product) {
+        alert('No se encontró un producto con ese SKU');
         setProcessingReturn(false);
         return;
       }
 
-      // Actualizar stock
-      const newStock = products.stock + returnQuantity;
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ stock: newStock })
-        .eq('id', products.id);
+      // Buscar la variante por product_id y talle
+      const { data: variant, error: variantError } = await supabase
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', product.id)
+        .eq('size', returnSize.trim())
+        .single();
 
-      if (updateError) throw updateError;
+      if (variantError || !variant) {
+        alert(`No se encontró el talle ${returnSize.trim()} para este producto`);
+        setProcessingReturn(false);
+        return;
+      }
+
+      // Incrementar stock usando RPC
+      const { error: incrementError } = await supabase.rpc('increment_variant_stock', {
+        variant_id: variant.id,
+        quantity_to_increment: returnQuantity
+      });
+
+      if (incrementError) throw incrementError;
+
+      const newStock = variant.stock + returnQuantity;
 
       // Registrar en historial de inventario
       await supabase
         .from('inventory_history')
         .insert({
-          product_id: products.id,
+          product_id: product.id,
+          variant_id: variant.id,
           change_type: 'return',
           quantity_change: returnQuantity,
-          change_amount: returnQuantity, // Columna legacy requerida
-          previous_stock: products.stock,
+          change_amount: returnQuantity,
+          previous_stock: variant.stock,
           new_stock: newStock,
           stock_after: newStock,
           reason: `Devolución - SKU: ${returnSku} Talle: ${returnSize}`,
         });
 
-      alert(`✅ Devolución procesada!\nProducto: ${products.name}\nStock actualizado: ${newStock}`);
+      alert(`✅ Devolución procesada!\nProducto: ${product.name} - Talle ${returnSize}\nStock actualizado: ${newStock}`);
       
       // Limpiar y cerrar modal
       setReturnSku('');
