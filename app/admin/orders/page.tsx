@@ -93,16 +93,25 @@ export default function OrdersPage() {
     if (!confirm(`¿Estás seguro de cancelar el pedido de ${order.customer_name}?`)) return;
 
     try {
+      console.log('Cancelando pedido:', order.id);
+      
       // Cambiar status a 'cancelled'
       const { error: updateError } = await supabase
         .from('orders')
         .update({ status: 'cancelled' })
         .eq('id', order.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating order status:', updateError);
+        throw updateError;
+      }
+
+      console.log('Pedido actualizado a cancelled');
 
       // Restaurar el stock de cada producto
       for (const item of order.items) {
+        console.log(`Restaurando stock para producto ${item.product_id}, cantidad: ${item.quantity}`);
+        
         const { error: stockError } = await supabase.rpc('increment_stock', {
           product_id: item.product_id,
           quantity: item.quantity
@@ -110,15 +119,21 @@ export default function OrdersPage() {
 
         if (stockError) {
           console.error(`Error restoring stock for product ${item.product_id}:`, stockError);
+          alert(`Error al restaurar stock del producto ${item.product_id}: ${stockError.message}`);
+        } else {
+          console.log(`Stock restaurado para producto ${item.product_id}`);
         }
       }
 
-      alert('Pedido cancelado y stock restaurado');
+      alert('Pedido cancelado y stock restaurado exitosamente');
       setSelectedOrder(null);
-      loadOrders();
-    } catch (error) {
+      
+      // Recargar la lista de pedidos
+      await loadOrders();
+      
+    } catch (error: any) {
       console.error('Error cancelling order:', error);
-      alert('Error al cancelar el pedido');
+      alert(`Error al cancelar el pedido: ${error.message || 'Error desconocido'}`);
     }
   };
 
