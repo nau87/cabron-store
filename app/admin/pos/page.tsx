@@ -58,6 +58,8 @@ export default function POSPage() {
   const [showSizeModal, setShowSizeModal] = useState(false);
   const [selectedProductForSize, setSelectedProductForSize] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
+  const [availableSizes, setAvailableSizes] = useState<Array<{size: string; stock: number; productId: string}>>([]);
+  const [loadingSizes, setLoadingSizes] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -122,17 +124,61 @@ export default function POSPage() {
     setFilteredProducts(filtered);
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = async (product: Product) => {
     // Si el producto tiene talle, mostrar modal para seleccionarlo
     if (product.size) {
       setSelectedProductForSize(product);
-      setSelectedSize(product.size);
+      setSelectedSize('');
       setShowSizeModal(true);
+      
+      // Cargar todos los talles disponibles para este producto
+      await loadAvailableSizes(product);
       return;
     }
 
     // Si no tiene talle, agregar directamente
     addProductToCart(product);
+  };
+
+  const loadAvailableSizes = async (product: Product) => {
+    setLoadingSizes(true);
+    try {
+      // Buscar todos los productos con el mismo SKU base o nombre
+      let query = supabase
+        .from('products')
+        .select('id, size, stock')
+        .gt('stock', 0);
+
+      if (product.sku) {
+        // Extraer SKU base (sin el talle)
+        const skuParts = product.sku.split('-');
+        const baseSku = skuParts.length > 1 ? skuParts.slice(0, -1).join('-') : product.sku;
+        query = query.like('sku', `${baseSku}%`);
+      } else {
+        query = query.eq('name', product.name);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error loading sizes:', error);
+        setAvailableSizes([]);
+        return;
+      }
+
+      const sizes = (data || []).map(p => ({
+        size: p.size || '',
+        stock: p.stock,
+        productId: p.id,
+      })).filter(s => s.size);
+
+      setAvailableSizes(sizes);
+    } catch (error) {
+      console.error('Error:', error);
+      setAvailableSizes([]);
+    } finally {
+      setLoadingSizes(false);
+    }
   };
 
   const addProductToCart = (product: Product) => {
@@ -157,36 +203,23 @@ export default function POSPage() {
       return;
     }
 
-    // Obtener el SKU base del producto (sin el talle)
-    // Si el producto tiene SKU, buscar por SKU base y talle
-    // Si no tiene SKU, usar el nombre del producto
-    let query = supabase
-      .from('products')
-      .select('*')
-      .eq('size', selectedSize)
-      .gt('stock', 0);
-
-    // Si el producto tiene SKU, usarlo para la búsqueda
-    if (selectedProductForSize.sku) {
-      // Extraer SKU base (antes del último guión si existe)
-      const skuParts = selectedProductForSize.sku.split('-');
-      if (skuParts.length > 1) {
-        // Remover el último elemento (que sería el talle)
-        const baseSkuPattern = skuParts.slice(0, -1).join('-');
-        query = query.like('sku', `${baseSkuPattern}%`);
-      } else {
-        query = query.like('sku', `${selectedProductForSize.sku}%`);
-      }
-    } else {
-      // Si no hay SKU, buscar por nombre
-      query = query.eq('name', selectedProductForSize.name);
+    // Buscar el producto específico del talle seleccionado
+    const sizeInfo = availableSizes.find(s => s.size === selectedSize);
+    if (!sizeInfo) {
+      alert(`No hay stock disponible del talle ${selectedSize}`);
+      return;
     }
 
-    const { data: productWithSize, error } = await query.single();
+    // Obtener el producto completo
+    const { data: productWithSize, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', sizeInfo.productId)
+      .single();
 
     if (error || !productWithSize) {
-      alert(`No hay stock disponible del talle ${selectedSize}`);
-      console.error('Error buscando producto:', error);
+      alert(`Error al cargar el producto`);
+      console.error('Error:', error);
       return;
     }
 
@@ -194,6 +227,7 @@ export default function POSPage() {
     setShowSizeModal(false);
     setSelectedProductForSize(null);
     setSelectedSize('');
+    setAvailableSizes([]);
   };
 
   const updateQuantity = (index: number, quantity: number) => {
@@ -881,24 +915,47 @@ export default function POSPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                  Talle Disponible *
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
+                  Selecciona el Talle *
                 </label>
-                <input
-                  type="text"
-                  value={selectedSize}
-                  onChange={(e) => setSelectedSize(e.target.value.toUpperCase())}
-                  placeholder="Ej: XL, M, L, S"
-                  className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white text-center text-lg font-semibold"
-                  autoFocus
-                />
+                
+                {loadingSizes ? (
+                  <div className="text-center py-8 text-zinc-600 dark:text-zinc-400">
+                    Cargando talles disponibles...
+                  </div>
+                ) : availableSizes.length === 0 ? (
+                  <div className="text-center py-8 text-red-600 dark:text-red-400">
+                    No hay talles disponibles con stock
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2">
+                    {availableSizes.map((sizeInfo) => (
+                      <button
+                        key={sizeInfo.size}
+                        onClick={() => setSelectedSize(sizeInfo.size)}
+                        className={`px-4 py-3 rounded-lg border-2 font-semibold transition-all ${
+                          selectedSize === sizeInfo.size
+                            ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                            : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500 text-zinc-900 dark:text-white'
+                        }`}
+                      >
+                        <div className="text-lg">{sizeInfo.size}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                          Stock: {sizeInfo.stock}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  ℹ️ Se verificará el stock disponible del talle ingresado antes de agregarlo al carrito.
-                </p>
-              </div>
+              {selectedSize && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    ✓ Talle {selectedSize} seleccionado
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <button
