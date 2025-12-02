@@ -167,6 +167,11 @@ export default function CheckoutPage() {
 
   const onSubmitPayment = async (paymentFormData: any) => {
     try {
+      // Asegurar que los datos del payer existen
+      const payerEmail = paymentFormData?.payer?.email || formData.customer_email || user?.email || '';
+      const payerFirstName = paymentFormData?.payer?.first_name || formData.customer_name.split(' ')[0] || '';
+      const payerLastName = paymentFormData?.payer?.last_name || formData.customer_name.split(' ').slice(1).join(' ') || '';
+
       const response = await fetch('/api/mercadopago/process-payment', {
         method: 'POST',
         headers: {
@@ -177,9 +182,9 @@ export default function CheckoutPage() {
           amount: cartTotal,
           description: `Compra en Cabrón Store - ${cartItems.length} producto(s)`,
           payer: {
-            email: paymentFormData.payer.email,
-            first_name: paymentFormData.payer.first_name || formData.customer_name.split(' ')[0],
-            last_name: paymentFormData.payer.last_name || formData.customer_name.split(' ').slice(1).join(' '),
+            email: payerEmail,
+            first_name: payerFirstName,
+            last_name: payerLastName,
           },
           metadata: {
             customer_name: formData.customer_name,
