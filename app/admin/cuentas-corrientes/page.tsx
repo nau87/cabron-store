@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import AdminNav from '@/components/AdminNav';
 import { useReceiptGenerator } from '@/components/ReceiptGenerator';
@@ -37,6 +37,9 @@ export default function CuentasCorrientesPage() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -159,6 +162,167 @@ export default function CuentasCorrientesPage() {
     }
   };
 
+  const handleShowReceipt = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setShowReceiptModal(true);
+  };
+
+  // Generar comprobante cuando el modal se abre
+  useEffect(() => {
+    if (showReceiptModal && selectedTransaction && canvasRef.current && selectedCustomer) {
+      const timer = setTimeout(() => generateReceiptImage(), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [showReceiptModal, selectedTransaction, selectedCustomer]);
+
+  const generateReceiptImage = () => {
+    if (!selectedTransaction || !canvasRef.current || !selectedCustomer) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Configurar canvas
+    canvas.width = 400;
+    canvas.height = selectedTransaction.type === 'sale' ? 500 : 400;
+
+    // Fondo blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Configuración de texto
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+
+    let yPos = 30;
+
+    // Header
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('CABRÓN STORE', canvas.width / 2, yPos);
+    yPos += 30;
+
+    ctx.font = '14px Arial';
+    ctx.fillText(
+      selectedTransaction.type === 'sale' ? 'Comprobante de Venta' : 'Comprobante de Pago',
+      canvas.width / 2,
+      yPos
+    );
+    yPos += 40;
+
+    // Línea separadora
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 30;
+
+    // Información
+    ctx.textAlign = 'left';
+    ctx.font = '12px Arial';
+
+    ctx.fillText(`Cliente: ${selectedCustomer.full_name}`, 20, yPos);
+    yPos += 20;
+    ctx.fillText(`Email: ${selectedCustomer.email}`, 20, yPos);
+    yPos += 20;
+    ctx.fillText(`Fecha: ${formatDate(selectedTransaction.created_at)}`, 20, yPos);
+    yPos += 30;
+
+    if (selectedTransaction.type === 'sale') {
+      // Para ventas
+      ctx.font = 'bold 12px Arial';
+      ctx.fillText('COMPRA A CUENTA CORRIENTE', 20, yPos);
+      yPos += 25;
+
+      ctx.font = '11px Arial';
+      if (selectedTransaction.description) {
+        ctx.fillText(selectedTransaction.description, 20, yPos);
+        yPos += 25;
+      }
+    } else {
+      // Para pagos
+      ctx.font = 'bold 12px Arial';
+      ctx.fillText('PAGO REALIZADO', 20, yPos);
+      yPos += 25;
+
+      ctx.font = '11px Arial';
+      if (selectedTransaction.payment_method) {
+        ctx.fillText(`Método de pago: ${selectedTransaction.payment_method}`, 20, yPos);
+        yPos += 20;
+      }
+      if (selectedTransaction.description) {
+        ctx.fillText(selectedTransaction.description, 20, yPos);
+        yPos += 25;
+      }
+    }
+
+    yPos += 10;
+
+    // Línea separadora
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 20;
+
+    // Total/Monto
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(
+      selectedTransaction.type === 'sale' ? 'TOTAL:' : 'MONTO:',
+      20,
+      yPos
+    );
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${Math.abs(selectedTransaction.amount).toFixed(2)}`, canvas.width - 20, yPos);
+    yPos += 40;
+
+    // Footer
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(20, yPos);
+    ctx.lineTo(canvas.width - 20, yPos);
+    ctx.stroke();
+    yPos += 20;
+
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      selectedTransaction.type === 'sale' ? '¡Gracias por su compra!' : '¡Gracias por su pago!',
+      canvas.width / 2,
+      yPos
+    );
+    yPos += 15;
+    ctx.fillText('www.cabronstore.com', canvas.width / 2, yPos);
+  };
+
+  const downloadReceipt = () => {
+    if (!canvasRef.current || !selectedTransaction) return;
+
+    const canvas = canvasRef.current;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const fileName = `comprobante-${selectedTransaction.type}-${selectedTransaction.id.slice(0, 8)}.png`;
+      link.download = fileName;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   if (loading || !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -276,7 +440,8 @@ export default function CuentasCorrientesPage() {
                       {transactions.map((transaction) => (
                         <div
                           key={transaction.id}
-                          className="border-l-4 pl-4 py-2"
+                          onClick={() => handleShowReceipt(transaction)}
+                          className="border-l-4 pl-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors rounded"
                           style={{
                             borderColor: transaction.type === 'sale' ? '#ef4444' : '#10b981',
                           }}
@@ -404,6 +569,59 @@ export default function CuentasCorrientesPage() {
               >
                 {processingPayment ? 'Procesando...' : 'Registrar Pago'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Comprobante */}
+      {showReceiptModal && selectedTransaction && selectedCustomer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">
+                📄 Comprobante
+              </h2>
+              <button
+                onClick={() => {
+                  setShowReceiptModal(false);
+                  setSelectedTransaction(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Canvas del comprobante */}
+              <div className="flex justify-center mb-4">
+                <canvas
+                  ref={canvasRef}
+                  width={400}
+                  height={600}
+                  className="border border-gray-300 rounded shadow-lg max-w-full"
+                />
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={downloadReceipt}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  📥 Descargar Comprobante
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReceiptModal(false);
+                    setSelectedTransaction(null);
+                  }}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>
