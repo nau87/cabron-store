@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   full_name TEXT,
   email TEXT,
   phone TEXT,
+  role TEXT DEFAULT 'customer' CHECK (role IN ('admin', 'customer')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -48,7 +49,42 @@ CREATE POLICY "Admins can view all profiles"
     )
   );
 
--- 5. Verificar estructura
+-- 6. Crear función para insertar perfil automáticamente al registrarse
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, full_name, email, phone, role)
+  VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data->>'full_name',
+    NEW.email,
+    NEW.raw_user_meta_data->>'phone',
+    COALESCE(NEW.raw_user_meta_data->>'role', 'customer')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. Crear trigger para ejecutar la función
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- 8. Insertar perfiles para usuarios existentes que no tengan perfil
+INSERT INTO public.user_profiles (id, full_name, email, phone, role)
+SELECT 
+  au.id,
+  au.raw_user_meta_data->>'full_name',
+  au.email,
+  au.raw_user_meta_data->>'phone',
+  COALESCE(au.raw_user_meta_data->>'role', 'customer')
+FROM auth.users au
+LEFT JOIN public.user_profiles up ON au.id = up.id
+WHERE up.id IS NULL;
+
+-- 9. Verificar estructura
 SELECT column_name, data_type 
 FROM information_schema.columns 
 WHERE table_name = 'user_profiles'
