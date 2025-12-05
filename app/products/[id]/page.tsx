@@ -90,9 +90,19 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </p>
 
             <div className="mb-8">
+              {product.original_price && product.original_price > product.price && (
+                <p className="text-2xl font-bold text-zinc-400 line-through mb-2">
+                  ${product.original_price.toLocaleString('es-AR')}
+                </p>
+              )}
               <p className="text-5xl font-black">
                 ${product.price.toLocaleString('es-AR')}
               </p>
+              {product.original_price && product.original_price > product.price && (
+                <p className="text-sm font-semibold text-green-600 mt-2">
+                  ¡Ahorrás ${(product.original_price - product.price).toLocaleString('es-AR')}!
+                </p>
+              )}
             </div>
 
             <div className="mb-8">

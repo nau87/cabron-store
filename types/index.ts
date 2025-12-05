@@ -3,6 +3,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  original_price?: number; // Precio original (antes del descuento) para mostrar tachado
   image_url: string;
   images?: string[]; // Array de URLs de imágenes (hasta 3)
   stock: number;

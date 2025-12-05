@@ -121,9 +121,16 @@ export default function ProductCard({ product }: ProductCardProps) {
         </Link>
         
         <div className="flex justify-between items-center">
-          <span className="text-xl font-black">
-            ${product.price.toLocaleString('es-AR')}
-          </span>
+          <div className="flex flex-col">
+            {product.original_price && product.original_price > product.price && (
+              <span className="text-sm text-zinc-400 line-through">
+                ${product.original_price.toLocaleString('es-AR')}
+              </span>
+            )}
+            <span className="text-xl font-black">
+              ${product.price.toLocaleString('es-AR')}
+            </span>
+          </div>
           
           {!isAdmin && (
             <button
