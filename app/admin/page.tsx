@@ -254,7 +254,6 @@ function ProductModal({
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price || 0,
-    original_price: product?.original_price || null,
     image_url: product?.image_url || '',
     category: product?.category || 'Remeras',
     sku: product?.sku || '',
@@ -493,7 +492,8 @@ function ProductModal({
         ...formData, 
         stock: currentStock, // Al editar, mantener el stock de variantes; al crear, 0
         image_url: imageUrls[0], // Primera imagen como principal
-        images: imageUrls // Array completo
+        images: imageUrls, // Array completo
+        original_price: Math.round(formData.price * 1.15) // Precio + 15% para mostrar tachado
       };
 
       if (product) {
@@ -567,7 +567,7 @@ function ProductModal({
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Precio Actual (Venta) *
+                Precio de Venta *
               </label>
               <input
                 type="number"
@@ -577,22 +577,8 @@ function ProductModal({
                 className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
                 required
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Precio Original (Tachado) - Opcional
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.original_price || ''}
-                onChange={(e) => setFormData({ ...formData, original_price: e.target.value ? parseFloat(e.target.value) : null })}
-                placeholder="Deja vacío si no hay descuento"
-                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
-              />
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                Si completas este campo, aparecerá tachado junto al precio actual
+                💰 Se mostrará un precio tachado automáticamente (+15% para efecto descuento)
               </p>
             </div>
 
