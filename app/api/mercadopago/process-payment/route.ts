@@ -95,20 +95,30 @@ export async function POST(request: NextRequest) {
         // Crear la dirección completa
         const fullAddress = `${metadata.shipping_address}, ${metadata.city}, ${metadata.province}, CP: ${metadata.postal_code}`;
 
+        // Generar número de pedido
+        const { data: saleNumberData } = await supabase.rpc('generate_sale_number', { p_sale_type: 'online' });
+        const saleNumber = saleNumberData || `ORDER-${data.id}`;
+
         // Crear la orden en Supabase
         const { data: orderData, error: orderError } = await supabase
-          .from('orders')
+          .from('sales')
           .insert([
             {
+              sale_type: 'online',
+              sale_number: saleNumber,
               customer_name: metadata.customer_name,
               customer_email: payer.email,
               customer_phone: metadata.customer_phone,
               shipping_address: fullAddress,
+              city: metadata.city,
+              province: metadata.province,
+              postal_code: metadata.postal_code,
               total: transaction_amount,
               status: 'approved',
               items: orderItems,
               user_id: metadata.user_id || null,
-              payment_id: data.id, // Guardar el ID del pago de Mercado Pago
+              payment_id: data.id,
+              payment_method: 'mercadopago',
             }
           ])
           .select()

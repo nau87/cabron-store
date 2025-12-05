@@ -174,10 +174,16 @@ export default function CheckoutPage() {
         size: item.selectedSize
       }));
 
+      // Generar número de pedido
+      const { data: saleNumberData } = await supabase.rpc('generate_sale_number', { p_sale_type: 'online' });
+      const saleNumber = saleNumberData || `ORDER-${Date.now()}`;
+
       const { data: order, error } = await supabase
-        .from('orders')
+        .from('sales')
         .insert([
           {
+            sale_type: 'online',
+            sale_number: saleNumber,
             customer_name: formData.customer_name,
             customer_email: formData.customer_email,
             customer_phone: formData.customer_phone,

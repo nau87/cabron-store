@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
       if (paymentData.status === 'approved') {
         // Buscar la orden por payment_id
         const { data: orders, error: findError } = await supabase
-          .from('orders')
+          .from('sales')
           .select('*')
+          .eq('sale_type', 'online')
           .eq('payment_id', paymentId);
 
         if (findError) {
@@ -48,8 +49,9 @@ export async function POST(request: NextRequest) {
         if (orders && orders.length > 0) {
           // Actualizar el status de la orden
           const { error: updateError } = await supabase
-            .from('orders')
+            .from('sales')
             .update({ status: 'approved' })
+            .eq('sale_type', 'online')
             .eq('payment_id', paymentId);
 
           if (updateError) {
@@ -66,8 +68,9 @@ export async function POST(request: NextRequest) {
       // Si el pago fue rechazado o cancelado
       if (paymentData.status === 'rejected' || paymentData.status === 'cancelled') {
         const { error: updateError } = await supabase
-          .from('orders')
+          .from('sales')
           .update({ status: 'cancelled' })
+          .eq('sale_type', 'online')
           .eq('payment_id', paymentId);
 
         if (updateError) {

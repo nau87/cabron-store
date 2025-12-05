@@ -387,9 +387,10 @@ export default function POSPage() {
 
       // Crear venta
       const { data: saleData, error: saleError } = await supabase
-        .from('local_sales')
+        .from('sales')
         .insert([
           {
+            sale_type: 'pos',
             sale_number: saleNumber,
             customer_name: customer.name,
             customer_email: customer.email,
@@ -401,6 +402,7 @@ export default function POSPage() {
             discount_percentage: generalDiscount,
             total,
             payment_method: isAccountSale ? 'cuenta_corriente' : paymentMethod,
+            status: 'completed',
             admin_user_id: user?.id,
             receipt_data: receiptData,
           },

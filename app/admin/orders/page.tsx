@@ -59,8 +59,9 @@ export default function OrdersPage() {
     try {
       console.log('Cargando pedidos...');
       let query = supabase
-        .from('orders')
+        .from('sales')
         .select('*')
+        .eq('sale_type', 'online')
         .order('created_at', { ascending: false });
 
       const { data, error } = await query;
@@ -90,7 +91,7 @@ export default function OrdersPage() {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('orders')
+        .from('sales')
         .update({ status: newStatus })
         .eq('id', orderId);
 
@@ -119,9 +120,10 @@ export default function OrdersPage() {
       
       // Actualizar directamente en Supabase (sin API intermedia)
       const { error: updateError } = await supabase
-        .from('orders')
+        .from('sales')
         .update({ status: 'cancelled' })
-        .eq('id', order.id);
+        .eq('id', order.id)
+        .eq('sale_type', 'online');
 
       if (updateError) {
         console.error('Error updating order status:', updateError);
