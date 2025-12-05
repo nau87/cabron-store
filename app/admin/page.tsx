@@ -266,6 +266,37 @@ function ProductModal({
   const [existingUrls, setExistingUrls] = useState<string[]>(product?.images && product.images.length > 0 ? product.images : []);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+  // Extraer el path del storage desde una URL pública
+  const getStoragePathFromUrl = (url: string): string | null => {
+    try {
+      const urlObj = new URL(url);
+      const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/product-images\/(.+)/);
+      return pathMatch ? pathMatch[1] : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Eliminar imagen del storage
+  const deleteImageFromStorage = async (imageUrl: string) => {
+    const filePath = getStoragePathFromUrl(imageUrl);
+    if (!filePath) return;
+
+    try {
+      const { error } = await supabase.storage
+        .from('product-images')
+        .remove([filePath]);
+      
+      if (error) {
+        console.error('Error deleting image from storage:', error);
+      } else {
+        console.log('Image deleted from storage:', filePath);
+      }
+    } catch (error) {
+      console.error('Error deleting image:', error);
+    }
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     
@@ -292,8 +323,9 @@ function ProductModal({
   const removeImage = (index: number) => {
     const preview = imagePreviews[index];
     
-    // Si es URL existente, quitarla de existingUrls
+    // Si es URL existente, eliminarla del storage y de existingUrls
     if (preview.startsWith('http')) {
+      deleteImageFromStorage(preview);
       setExistingUrls(prev => prev.filter(url => url !== preview));
     } else {
       // Si es preview local, quitar el archivo
@@ -426,6 +458,21 @@ function ProductModal({
         alert('Debes subir al menos una imagen');
         setLoading(false);
         return;
+      }
+
+      // Si estamos editando, eliminar imágenes viejas que ya no están en la lista final
+      if (product?.images && product.images.length > 0) {
+        const oldImages = product.images;
+        const imagesToDelete = oldImages.filter(oldUrl => !imageUrls.includes(oldUrl));
+        
+        // Eliminar imágenes huérfanas del storage
+        for (const imageUrl of imagesToDelete) {
+          await deleteImageFromStorage(imageUrl);
+        }
+        
+        if (imagesToDelete.length > 0) {
+          console.log(`Eliminadas ${imagesToDelete.length} imágenes antiguas del storage`);
+        }
       }
 
       let currentStock = 0;
