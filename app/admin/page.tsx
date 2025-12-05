@@ -624,10 +624,12 @@ function ProductModal({
                 required
               >
                 <option value="Remeras">Remeras</option>
+                <option value="Camisas">Camisas</option>
                 <option value="Pantalones">Pantalones</option>
                 <option value="Buzos">Buzos</option>
                 <option value="Camperas">Camperas</option>
                 <option value="Shorts">Shorts</option>
+                <option value="Calzado">Calzado</option>
                 <option value="Accesorios">Accesorios</option>
               </select>
             </div>
