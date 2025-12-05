@@ -262,8 +262,9 @@ function ProductModal({
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images || product?.image_url ? [product.image_url] : []);
-  const [existingUrls, setExistingUrls] = useState<string[]>(product?.images || product?.image_url ? [product.image_url] : []);
+  const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images && product.images.length > 0 ? product.images : []);
+  const [existingUrls, setExistingUrls] = useState<string[]>(product?.images && product.images.length > 0 ? product.images : []);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -322,6 +323,48 @@ function ProductModal({
         return newUrls;
       });
     }
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    setImagePreviews(prev => {
+      const newPreviews = [...prev];
+      const [draggedItem] = newPreviews.splice(draggedIndex, 1);
+      newPreviews.splice(dropIndex, 0, draggedItem);
+      return newPreviews;
+    });
+
+    // Si ambas son URLs existentes, actualizar existingUrls
+    const draggedPreview = imagePreviews[draggedIndex];
+    const dropPreview = imagePreviews[dropIndex];
+    
+    if (draggedPreview.startsWith('http') && dropPreview.startsWith('http')) {
+      setExistingUrls(prev => {
+        const draggedUrl = prev[prev.indexOf(draggedPreview)];
+        const newUrls = [...prev];
+        const dragIdx = newUrls.indexOf(draggedUrl);
+        const [item] = newUrls.splice(dragIdx, 1);
+        const dropIdx = imagePreviews.indexOf(dropPreview);
+        newUrls.splice(dropIdx, 0, item);
+        return newUrls;
+      });
+    }
+
+    setDraggedIndex(null);
   };
 
   const uploadImages = async (): Promise<string[]> => {
@@ -568,36 +611,35 @@ function ProductModal({
                 Imágenes del Producto * (Máximo 3)
               </label>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
-                La primera imagen será la principal. Usa ⭐ para cambiar el orden.
+                🖱️ Arrastra las imágenes para cambiar el orden. La primera será la principal.
               </p>
               
               {/* Previews de imágenes */}
               {imagePreviews.length > 0 && (
                 <div className="mb-3 grid grid-cols-3 gap-3">
                   {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative aspect-square bg-zinc-100 dark:bg-zinc-700 rounded-lg overflow-hidden group">
+                    <div 
+                      key={index} 
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`relative aspect-square bg-zinc-100 dark:bg-zinc-700 rounded-lg overflow-hidden group cursor-move border-2 transition-all ${
+                        draggedIndex === index ? 'border-blue-500 opacity-50 scale-95' : 'border-transparent hover:border-blue-300'
+                      }`}
+                    >
                       <Image
                         src={preview}
                         alt={`Preview ${index + 1}`}
                         fill
-                        className="object-cover"
+                        className="object-cover pointer-events-none"
                       />
                       <div className="absolute top-2 right-2 flex gap-1">
-                        {index !== 0 && (
-                          <button
-                            type="button"
-                            onClick={() => moveImageToFirst(index)}
-                            title="Establecer como principal"
-                            className="bg-green-500 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-green-600"
-                          >
-                            ⭐
-                          </button>
-                        )}
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
                           title="Eliminar imagen"
-                          className="bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          className="bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
                         >
                           ×
                         </button>
@@ -607,6 +649,9 @@ function ProductModal({
                           ⭐ Principal
                         </span>
                       )}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 pointer-events-none">
+                        <span className="text-white text-2xl drop-shadow-lg">🖱️</span>
+                      </div>
                     </div>
                   ))}
                 </div>
