@@ -44,6 +44,9 @@ export default function Home() {
                 <li><a href="#" className="hover:text-white transition-colors uppercase tracking-wide">Sobre nosotros</a></li>
                 <li><a href="#" className="hover:text-white transition-colors uppercase tracking-wide">Envíos</a></li>
                 <li><a href="#" className="hover:text-white transition-colors uppercase tracking-wide">Cambios y devoluciones</a></li>
+                <li><a href="/terminos" className="hover:text-white transition-colors uppercase tracking-wide">Términos y Condiciones</a></li>
+                <li><a href="/privacidad" className="hover:text-white transition-colors uppercase tracking-wide">Política de Privacidad</a></li>
+                <li><a href="/arrepentimiento" className="hover:text-white transition-colors uppercase tracking-wide">Botón de Arrepentimiento</a></li>
               </ul>
             </div>
 

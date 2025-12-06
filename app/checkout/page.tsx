@@ -31,6 +31,11 @@ export default function CheckoutPage() {
     postal_code: '',
     shipping_address: ''
   });
+  
+  // Estados para cupón
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   useEffect(() => {
     const cart = localStorage.getItem('cart');
@@ -88,9 +93,54 @@ export default function CheckoutPage() {
     0
   );
 
-  // Aplicar descuento del 30% si es transferencia
-  const finalTotal = paymentMethod === 'transferencia' ? cartTotal * 0.7 : cartTotal;
-  const discount = paymentMethod === 'transferencia' ? cartTotal * 0.3 : 0;
+  // Aplicar descuento de cupón primero
+  const couponDiscount = appliedCoupon?.final_discount || 0;
+  const subtotalAfterCoupon = cartTotal - couponDiscount;
+  
+  // Aplicar descuento del 30% si es transferencia (sobre el total después del cupón)
+  const transferDiscount = paymentMethod === 'transferencia' ? subtotalAfterCoupon * 0.3 : 0;
+  const finalTotal = subtotalAfterCoupon - transferDiscount;
+  
+  // Total de descuentos
+  const totalDiscount = couponDiscount + transferDiscount;
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('INGRESA UN CÓDIGO DE CUPÓN');
+      return;
+    }
+
+    setCouponLoading(true);
+    try {
+      const { data, error } = await supabase
+        .rpc('validate_coupon', {
+          coupon_code: couponCode.toUpperCase(),
+          purchase_amount: cartTotal
+        });
+
+      if (error) throw error;
+
+      const result = data[0];
+      
+      if (result.is_valid) {
+        setAppliedCoupon(result);
+        toast.success(`CUPÓN APLICADO: -$${result.final_discount.toLocaleString('es-AR')}`);
+      } else {
+        toast.error(result.message.toUpperCase());
+      }
+    } catch (error) {
+      console.error('Error validating coupon:', error);
+      toast.error('ERROR AL VALIDAR CUPÓN');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    toast('CUPÓN ELIMINADO', { icon: '🗑️' });
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -197,7 +247,8 @@ export default function CheckoutPage() {
             status: 'pending_payment',
             payment_id: 'TRANSFER_PENDING',
             payment_method: 'transferencia',
-            discount_amount: discount,
+            discount_amount: totalDiscount,
+            coupon_code: appliedCoupon ? couponCode : null,
             user_id: user?.id || null,
           },
         ])
@@ -205,6 +256,13 @@ export default function CheckoutPage() {
         .single();
 
       if (error) throw error;
+
+      // Incrementar contador de uso del cupón si se aplicó
+      if (appliedCoupon && couponCode) {
+        await supabase.rpc('increment_coupon_usage', {
+          coupon_code: couponCode
+        });
+      }
 
       // Decrementar el stock de cada producto usando variantId
       for (const item of cartItems) {
@@ -261,7 +319,7 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           ...paymentFormData,
-          transaction_amount: cartTotal,
+          transaction_amount: finalTotal,
           description: `Compra en Cabrón Store - ${cartItems.length} producto(s)`,
           payer: {
             email: payerEmail,
@@ -277,6 +335,9 @@ export default function CheckoutPage() {
             province: formData.province,
             postal_code: formData.postal_code,
             user_id: user?.id || null,
+            coupon_code: appliedCoupon ? couponCode : null,
+            discount_amount: totalDiscount,
+            subtotal: cartTotal,
           },
         }),
       });
@@ -413,25 +474,84 @@ export default function CheckoutPage() {
                 </div>
               ))}
 
+              {/* Cupón de descuento */}
               <div className="border-t pt-4">
-                {paymentMethod === 'transferencia' && (
-                  <>
-                    <div className="flex justify-between items-center text-lg mb-2">
-                      <span className="text-zinc-600 dark:text-zinc-400">Subtotal:</span>
-                      <span className="text-zinc-900 dark:text-white">
-                        ${cartTotal.toFixed(2)}
-                      </span>
+                <h3 className="font-semibold text-zinc-900 dark:text-white mb-3">
+                  ¿Tenés un cupón?
+                </h3>
+                
+                {!appliedCoupon ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="CÓDIGO"
+                      className="flex-1 px-4 py-2 border border-zinc-300 rounded-lg uppercase font-semibold"
+                      disabled={couponLoading}
+                    />
+                    <button
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="px-6 py-2 bg-black text-white rounded-lg font-bold uppercase hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {couponLoading ? '...' : 'Aplicar'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-green-800">
+                        {couponCode} ✓
+                      </p>
+                      <p className="text-sm text-green-600">
+                        Ahorro: ${appliedCoupon.final_discount.toLocaleString('es-AR')}
+                      </p>
                     </div>
-                    <div className="flex justify-between items-center text-lg mb-2 text-green-600">
-                      <span>Descuento 30% (Transferencia):</span>
-                      <span>-${discount.toFixed(2)}</span>
-                    </div>
-                  </>
+                    <button
+                      onClick={handleRemoveCoupon}
+                      className="text-red-500 hover:text-red-700 font-semibold text-sm"
+                    >
+                      Quitar
+                    </button>
+                  </div>
                 )}
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center text-lg mb-2">
+                  <span className="text-zinc-600 dark:text-zinc-400">Subtotal:</span>
+                  <span className="text-zinc-900 dark:text-white">
+                    ${cartTotal.toLocaleString('es-AR')}
+                  </span>
+                </div>
+                
+                {appliedCoupon && (
+                  <div className="flex justify-between items-center text-lg mb-2 text-green-600">
+                    <span>Cupón ({couponCode}):</span>
+                    <span>-${couponDiscount.toLocaleString('es-AR')}</span>
+                  </div>
+                )}
+                
+                {paymentMethod === 'transferencia' && (
+                  <div className="flex justify-between items-center text-lg mb-2 text-green-600">
+                    <span>Descuento 30% (Transferencia):</span>
+                    <span>-${transferDiscount.toLocaleString('es-AR')}</span>
+                  </div>
+                )}
+                
+                {totalDiscount > 0 && (
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 mb-2">
+                    <p className="text-sm text-green-700 dark:text-green-400 font-semibold text-center">
+                      🎉 Ahorrás ${totalDiscount.toLocaleString('es-AR')}
+                    </p>
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center text-xl font-bold">
                   <span className="text-zinc-900 dark:text-white">Total:</span>
                   <span className="text-zinc-900 dark:text-white">
-                    ${finalTotal.toFixed(2)}
+                    ${finalTotal.toLocaleString('es-AR')}
                   </span>
                 </div>
               </div>

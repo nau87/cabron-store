@@ -119,6 +119,8 @@ export async function POST(request: NextRequest) {
               user_id: metadata.user_id || null,
               payment_id: data.id,
               payment_method: 'mercadopago',
+              discount_amount: metadata.discount_amount || 0,
+              coupon_code: metadata.coupon_code || null,
             }
           ])
           .select()
@@ -128,6 +130,13 @@ export async function POST(request: NextRequest) {
           console.error('Error creating order:', orderError);
         } else {
           console.log('Order created:', orderData);
+          
+          // Incrementar uso del cupón si se aplicó
+          if (metadata.coupon_code) {
+            await supabase.rpc('increment_coupon_usage', {
+              coupon_code: metadata.coupon_code
+            });
+          }
 
           // Actualizar el stock de cada producto
           for (const item of orderItems) {

@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [showVariantsModal, setShowVariantsModal] = useState(false);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -44,8 +45,29 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAdmin) {
       loadProducts();
+      loadNewOrdersCount();
+      
+      // Actualizar contador cada 30 segundos
+      const interval = setInterval(loadNewOrdersCount, 30000);
+      return () => clearInterval(interval);
     }
   }, [isAdmin]);
+
+  const loadNewOrdersCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('sales')
+        .select('*', { count: 'exact', head: true })
+        .eq('sale_type', 'online')
+        .in('status', ['pending_payment', 'approved']);
+
+      if (!error && count !== null) {
+        setNewOrdersCount(count);
+      }
+    } catch (error) {
+      console.error('Error loading new orders count:', error);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -93,6 +115,58 @@ export default function AdminPage() {
       <Header />
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Tarjetas de acceso rápido */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Tarjeta Pedidos */}
+          <button
+            onClick={() => router.push('/admin/orders')}
+            className="bg-white dark:bg-zinc-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow text-left relative"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+                  📋 Pedidos Online
+                </h3>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Gestionar pedidos de la web
+                </p>
+              </div>
+              {newOrdersCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold rounded-full w-8 h-8 flex items-center justify-center animate-pulse">
+                  {newOrdersCount}
+                </span>
+              )}
+            </div>
+          </button>
+
+          {/* Tarjeta Cupones */}
+          <button
+            onClick={() => router.push('/admin/cupones')}
+            className="bg-white dark:bg-zinc-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow text-left"
+          >
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+              🎟️ Cupones
+            </h3>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Crear códigos de descuento
+            </p>
+          </button>
+
+          {/* Tarjeta Inventario */}
+          <button
+            onClick={() => router.push('/admin/inventory')}
+            className="bg-white dark:bg-zinc-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow text-left"
+          >
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+              📦 Inventario
+            </h3>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Control de stock y variantes
+            </p>
+          </button>
+        </div>
+
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">

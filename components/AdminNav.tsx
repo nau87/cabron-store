@@ -40,6 +40,7 @@ export default function AdminNav() {
     { href: '/admin/ventas', label: '📊 Ventas' },
     { href: '/admin/inventory', label: '📦 Inventario' },
     { href: '/admin/cuentas-corrientes', label: '💰 Cuentas Corrientes' },
+    { href: '/admin/cupones', label: '🎟️ Cupones' },
   ];
 
   const isActive = (href: string, exact?: boolean) => {
