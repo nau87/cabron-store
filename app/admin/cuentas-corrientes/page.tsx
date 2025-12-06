@@ -94,7 +94,7 @@ export default function CuentasCorrientesPage() {
         (data || []).map(async (transaction) => {
           if (transaction.type === 'sale' && transaction.sale_id) {
             const { data: saleData } = await supabase
-              .from('local_sales')
+              .from('sales')
               .select('items')
               .eq('id', transaction.sale_id)
               .single();

@@ -79,8 +79,9 @@ export default function VentasPage() {
 
       // Cargar ventas POS
       let localQuery = supabase
-        .from('local_sales')
+        .from('sales')
         .select('*')
+        .eq('sale_type', 'pos')
         .order('created_at', { ascending: false });
 
       if (dateFilterValue) {
@@ -90,15 +91,16 @@ export default function VentasPage() {
       const { data: localData, error: localError } = await localQuery;
 
       if (localError) {
-        console.error('Error loading local sales:', localError);
+        console.error('Error loading POS sales:', localError);
       } else {
         setLocalSales(localData || []);
       }
 
       // Cargar ventas online (solo aprobadas)
       let onlineQuery = supabase
-        .from('orders')
+        .from('sales')
         .select('*')
+        .eq('sale_type', 'online')
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
 
@@ -109,7 +111,7 @@ export default function VentasPage() {
       const { data: onlineData, error: onlineError } = await onlineQuery;
 
       if (onlineError) {
-        console.error('Error loading online orders:', onlineError);
+        console.error('Error loading online sales:', onlineError);
       } else {
         setOnlineOrders(onlineData || []);
       }
