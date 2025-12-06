@@ -1,25 +1,26 @@
 -- Arreglar políticas RLS para que los admins puedan ver TODOS los cupones
--- (no solo los activos)
+-- y que usuarios anónimos/autenticados puedan VALIDAR cupones activos
 
 -- 1. Eliminar política antigua restrictiva
 DROP POLICY IF EXISTS "Cualquiera puede ver cupones activos" ON coupons;
+DROP POLICY IF EXISTS "Usuarios ven cupones activos" ON coupons;
 
--- 2. Crear dos políticas de SELECT:
---    a) Usuarios anónimos/autenticados solo ven cupones activos
---    b) Admins ven TODOS los cupones
-
--- Política: Usuarios normales solo ven cupones activos
-CREATE POLICY "Usuarios ven cupones activos"
+-- 2. Crear política PERMISIVA para usuarios (permite validar cupones)
+-- Esta política permite a CUALQUIERA (anon/authenticated) leer cupones activos
+CREATE POLICY "Usuarios pueden validar cupones activos"
   ON coupons FOR SELECT
+  TO anon, authenticated
   USING (
     is_active = true 
     AND (valid_from IS NULL OR valid_from <= NOW())
     AND (valid_until IS NULL OR valid_until >= NOW())
   );
 
--- Política: Admins ven TODOS los cupones (activos e inactivos)
+-- 3. Política: Admins ven TODOS los cupones (activos e inactivos)
+DROP POLICY IF EXISTS "Admins ven todos los cupones" ON coupons;
 CREATE POLICY "Admins ven todos los cupones"
   ON coupons FOR SELECT
+  TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM user_profiles

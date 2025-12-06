@@ -112,20 +112,29 @@ export default function CheckoutPage() {
 
     setCouponLoading(true);
     try {
+      console.log('🎟️ Validando cupón:', couponCode.toUpperCase(), 'Monto:', cartTotal);
+      
       const { data, error } = await supabase
         .rpc('validate_coupon', {
           coupon_code: couponCode.toUpperCase(),
           purchase_amount: cartTotal
         });
 
-      if (error) throw error;
+      console.log('📊 Respuesta RPC:', { data, error });
+
+      if (error) {
+        console.error('❌ Error al validar cupón:', error);
+        throw error;
+      }
 
       const result = data[0];
+      console.log('✅ Resultado validación:', result);
       
       if (result.is_valid) {
         setAppliedCoupon(result);
         toast.success(`CUPÓN APLICADO: -$${result.final_discount.toLocaleString('es-AR')}`);
       } else {
+        console.warn('⚠️ Cupón no válido:', result.message);
         toast.error(result.message.toUpperCase());
       }
     } catch (error) {
