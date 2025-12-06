@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 interface FavoriteProduct {
@@ -14,7 +14,6 @@ interface FavoriteProduct {
 export function useFavorites() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient();
 
   // Cargar favoritos al iniciar
   useEffect(() => {
