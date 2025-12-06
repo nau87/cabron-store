@@ -514,9 +514,24 @@ function ProductModal({
       }
 
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      alert('Error al guardar el producto');
+      
+      // Mostrar mensaje específico según el error
+      let errorMessage = 'Error al guardar el producto';
+      
+      if (error?.code === '23505') {
+        // Violación de constraint único
+        if (error.message?.includes('idx_products_sku')) {
+          errorMessage = '❌ El código SKU ya está en uso. Por favor usa otro código único.';
+        } else {
+          errorMessage = '❌ Este producto ya existe. Verifica los datos e intenta con valores únicos.';
+        }
+      } else if (error?.message) {
+        errorMessage = `❌ Error: ${error.message}`;
+      }
+      
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
