@@ -414,7 +414,6 @@ export default function OrdersPage() {
             </table>
           </div>
         )}
-      </main>
 
       {/* Modal de Detalle */}
       {selectedOrder && (

@@ -521,7 +521,6 @@ export default function InventoryPage() {
             </div>
           </>
         )}
-      </div>
 
       {/* Modal de ajuste de stock de productos base */}
       {showModal && selectedProduct && (
