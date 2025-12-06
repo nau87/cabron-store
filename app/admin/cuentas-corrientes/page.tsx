@@ -30,8 +30,6 @@ interface Transaction {
 }
 
 export default function CuentasCorrientesPage() {
-  const { isAdmin, loading } = useAuth();
-  const router = useRouter();
   const { generateAndDownload } = useReceiptGenerator();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
