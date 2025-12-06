@@ -572,7 +572,6 @@ export default function CuentasCorrientesPage() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Modal de Pago */}
       {showPaymentModal && selectedCustomer && (
