@@ -22,8 +22,6 @@ interface Coupon {
 }
 
 export default function CouponsPage() {
-  const { user, loading: authLoading, isAdmin } = useAuth();
-  const router = useRouter();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -43,16 +41,8 @@ export default function CouponsPage() {
   });
 
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
-      router.push('/');
-    }
-  }, [user, isAdmin, authLoading, router]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      loadCoupons();
-    }
-  }, [isAdmin]);
+    loadCoupons();
+  }, []);
 
   const loadCoupons = async () => {
     try {
