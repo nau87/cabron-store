@@ -1,10 +1,7 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import AdminNav from '@/components/AdminNav';
 import toast from 'react-hot-toast';
 import { Trash2, Edit2, Plus, Check, X } from 'lucide-react';
 
@@ -222,20 +219,17 @@ export default function CouponsPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <AdminNav />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-black uppercase tracking-wider">CUPONES</h1>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg font-bold uppercase hover:bg-zinc-800"
-          >
-            {showForm ? <X size={20} /> : <Plus size={20} />}
-            {showForm ? 'Cancelar' : 'Nuevo Cupón'}
-          </button>
-        </div>
+    <>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-black uppercase tracking-wider">CUPONES</h1>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg font-bold uppercase hover:bg-zinc-800"
+        >
+          {showForm ? <X size={20} /> : <Plus size={20} />}
+          {showForm ? 'Cancelar' : 'Nuevo Cupón'}
+        </button>
+      </div>
 
         {/* Formulario */}
         {showForm && (
@@ -516,6 +510,6 @@ export default function CouponsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

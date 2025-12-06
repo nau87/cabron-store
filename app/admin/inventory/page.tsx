@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Product } from '@/types';
-import AdminNav from '@/components/AdminNav';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
@@ -231,13 +230,10 @@ export default function InventoryPage() {
 
   return (
     <>
-      <AdminNav />
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Gestión de Inventario</h1>
+      <h1 className="text-4xl font-bold mb-8">Gestión de Inventario</h1>
 
-        {/* Pestañas */}
-        <div className="flex gap-2 mb-6">
+      {/* Pestañas */}
+      <div className="flex gap-2 mb-6">
           <button
             onClick={() => setActiveTab('products')}
             className={`px-6 py-3 rounded-t-lg font-semibold transition ${
@@ -725,7 +721,6 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
-      </div>
     </>
   );
 }

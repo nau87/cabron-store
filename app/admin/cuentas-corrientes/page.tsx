@@ -1,10 +1,7 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import AdminNav from '@/components/AdminNav';
 import { useReceiptGenerator } from '@/components/ReceiptGenerator';
 import toast from 'react-hot-toast';
 

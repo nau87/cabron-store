@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import AdminNav from '@/components/AdminNav';
 
 interface LocalSale {
   id: string;

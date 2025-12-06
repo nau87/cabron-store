@@ -1,10 +1,8 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import Header from '@/components/Header';
 import ProductVariantsManager from '@/components/ProductVariantsManager';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -26,7 +24,6 @@ interface Product {
 }
 
 export default function AdminPage() {
-  const { isAdmin, loading } = useAuth();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,21 +34,13 @@ export default function AdminPage() {
   const [newOrdersCount, setNewOrdersCount] = useState(0);
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
-      router.push('/');
-    }
-  }, [isAdmin, loading, router]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      loadProducts();
-      loadNewOrdersCount();
-      
-      // Actualizar contador cada 30 segundos
-      const interval = setInterval(loadNewOrdersCount, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [isAdmin]);
+    loadProducts();
+    loadNewOrdersCount();
+    
+    // Actualizar contador cada 30 segundos
+    const interval = setInterval(loadNewOrdersCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadNewOrdersCount = async () => {
     try {
@@ -102,22 +91,10 @@ export default function AdminPage() {
     }
   };
 
-  if (loading || !isAdmin) {
-    return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
-        <p className="text-zinc-600 dark:text-zinc-400">Cargando...</p>
-      </div>
-    );
-  }
-
   return (
     <>
-      <Header />
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Tarjetas de acceso rápido */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Tarjetas de acceso rápido */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Tarjeta Pedidos */}
           <button
             onClick={() => router.push('/admin/orders')}
@@ -310,8 +287,6 @@ export default function AdminPage() {
           }}
         />
       )}
-      </main>
-      </div>
     </>
   );
 }
