@@ -6,6 +6,8 @@ import { Product } from '@/types';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFavorites } from '@/hooks/useFavorites';
+import { Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -19,6 +21,7 @@ interface ProductVariant {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { isAdmin } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [isAdding, setIsAdding] = useState(false);
   const [showSizeModal, setShowSizeModal] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
@@ -105,6 +108,27 @@ export default function ProductCard({ product }: ProductCardProps) {
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          
+          {/* Botón de favoritos */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleFavorite(product.id);
+            }}
+            className="absolute top-3 right-3 z-10 bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110"
+            aria-label={isFavorite(product.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          >
+            <Heart
+              size={20}
+              className={`transition-all duration-300 ${
+                isFavorite(product.id)
+                  ? 'fill-red-500 text-red-500'
+                  : 'text-zinc-700 hover:text-red-500'
+              }`}
+            />
+          </button>
+          
           {product.stock === 0 && (
             <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
               <span className="text-white font-bold text-lg uppercase tracking-wider">AGOTADO</span>

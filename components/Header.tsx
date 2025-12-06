@@ -143,12 +143,20 @@ export default function Header({ searchTerm, onSearchChange }: HeaderProps = {})
               {user ? (
                 <div className="flex items-center gap-4">
                   {!isAdmin && (
-                    <Link
-                      href="/mi-cuenta"
-                      className="text-xs font-semibold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      MI CUENTA
-                    </Link>
+                    <>
+                      <Link
+                        href="/favoritos"
+                        className="text-xs font-semibold uppercase tracking-wider text-red-600 hover:text-red-700 transition-colors"
+                      >
+                        ❤️ FAVORITOS
+                      </Link>
+                      <Link
+                        href="/mi-cuenta"
+                        className="text-xs font-semibold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors"
+                      >
+                        MI CUENTA
+                      </Link>
+                    </>
                   )}
                   <span className="text-xs uppercase tracking-wider text-zinc-600">
                     {profile?.full_name || user.email}
@@ -264,13 +272,22 @@ export default function Header({ searchTerm, onSearchChange }: HeaderProps = {})
               {user ? (
                 <div className="space-y-4 border-t pt-4">
                   {!isAdmin && (
-                    <Link
-                      href="/mi-cuenta"
-                      className="block text-sm font-semibold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      MI CUENTA
-                    </Link>
+                    <>
+                      <Link
+                        href="/favoritos"
+                        className="block text-sm font-semibold uppercase tracking-wider text-red-600 hover:text-red-700 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        ❤️ FAVORITOS
+                      </Link>
+                      <Link
+                        href="/mi-cuenta"
+                        className="block text-sm font-semibold uppercase tracking-wider text-blue-600 hover:text-blue-700 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        MI CUENTA
+                      </Link>
+                    </>
                   )}
                   <p className="text-xs uppercase tracking-wider text-zinc-600">
                     {profile?.full_name || user.email}
