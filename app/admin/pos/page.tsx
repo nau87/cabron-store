@@ -33,8 +33,6 @@ interface Customer {
 }
 
 export default function POSPage() {
-  const { isAdmin, loading, user } = useAuth();
-  const router = useRouter();
   const { generateAndDownload } = useReceiptGenerator();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -587,9 +585,7 @@ export default function POSPage() {
   const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
 
   return (
-    <>
-      <AdminNav />
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
+    <div className="bg-zinc-50 dark:bg-zinc-900">
         <div className="flex h-screen">
           {/* Productos - Lado Izquierdo */}
           <div className="flex-1 p-6 overflow-y-auto">
@@ -1094,6 +1090,5 @@ export default function POSPage() {
         </div>
       )}
       </div>
-    </>
   );
 }

@@ -198,16 +198,6 @@ export default function CouponsPage() {
     setShowForm(false);
   };
 
-  if (authLoading || loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-      </div>
-    );
-  }
-
-  if (!isAdmin) return null;
-
   return (
     <>
       <div className="flex justify-between items-center mb-8">
