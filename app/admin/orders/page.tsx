@@ -189,14 +189,6 @@ export default function OrdersPage() {
     }
   };
 
-  if (loading || !isAdmin) {
-    return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
-        <p>Cargando...</p>
-      </div>
-    );
-  }
-
   const pendingCount = orders.filter(o => o.status === 'pending').length;
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {

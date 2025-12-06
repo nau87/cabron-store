@@ -59,17 +59,9 @@ export default function POSPage() {
   const [loadingSizes, setLoadingSizes] = useState(false);
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
-      router.push('/');
-    }
-  }, [isAdmin, loading, router]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      loadProducts();
-      loadCustomers();
-    }
-  }, [isAdmin]);
+    loadProducts();
+    loadCustomers();
+  }, []);
 
   useEffect(() => {
     filterProducts();
@@ -573,14 +565,6 @@ export default function POSPage() {
       setProcessingReturn(false);
     }
   };
-
-  if (loading || !isAdmin) {
-    return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
-        <p>Cargando...</p>
-      </div>
-    );
-  }
 
   const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
 
