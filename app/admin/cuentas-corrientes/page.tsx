@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useReceiptGenerator } from '@/components/ReceiptGenerator';
 import toast from 'react-hot-toast';
@@ -46,16 +46,8 @@ export default function CuentasCorrientesPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
-      router.push('/');
-    }
-  }, [isAdmin, loading, router]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      loadCustomers();
-    }
-  }, [isAdmin]);
+    loadCustomers();
+  }, []);
 
   const loadCustomers = async () => {
     setLoadingCustomers(true);
