@@ -375,9 +375,7 @@ export default function VentasPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
-      
+    <>
       <div className="container mx-auto p-4">
         <h1 className="text-3xl font-bold mb-6">📊 Registro de Ventas</h1>
 
@@ -598,6 +596,6 @@ export default function VentasPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
