@@ -411,12 +411,9 @@ export default function CuentasCorrientesPage() {
 
   return (
     <>
-      <AdminNav />
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Cuentas Corrientes</h1>
+      <h1 className="text-4xl font-bold mb-8">Cuentas Corrientes</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Lista de Clientes */}
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b">
@@ -704,7 +701,6 @@ export default function CuentasCorrientesPage() {
           </div>
         </div>
       )}
-      </div>
     </>
   );
 }
