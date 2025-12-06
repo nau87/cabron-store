@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 
 interface Variant {
   id: string;
@@ -59,7 +60,7 @@ export default function ProductVariantsManager({
 
   const handleAddVariant = async () => {
     if (!newVariant.size.trim()) {
-      alert('El talle es obligatorio');
+      toast.error('EL TALLE ES OBLIGATORIO');
       return;
     }
 
@@ -82,10 +83,10 @@ export default function ProductVariantsManager({
       
       // Recargar variantes
       await loadVariants();
-      alert('✅ Variante agregada exitosamente');
+      toast.success('VARIANTE AGREGADA EXITOSAMENTE');
     } catch (error: any) {
       console.error('Error adding variant:', error);
-      alert('❌ Error al agregar variante');
+      toast.error('ERROR AL AGREGAR VARIANTE');
     } finally {
       setSaving(false);
     }
@@ -106,7 +107,7 @@ export default function ProductVariantsManager({
       ));
     } catch (error) {
       console.error('Error updating stock:', error);
-      alert('Error al actualizar stock');
+      toast.error('ERROR AL ACTUALIZAR STOCK');
     }
   };
 
@@ -122,10 +123,10 @@ export default function ProductVariantsManager({
       if (error) throw error;
 
       await loadVariants();
-      alert('✅ Variante eliminada');
+      toast.success('VARIANTE ELIMINADA');
     } catch (error) {
       console.error('Error deleting variant:', error);
-      alert('Error al eliminar variante');
+      toast.error('ERROR AL ELIMINAR VARIANTE');
     }
   };
 

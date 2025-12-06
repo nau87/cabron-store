@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import AddToCartButton from './AddToCartButton';
 import ProductGallery from '@/components/ProductGallery';
+import ProductCard from '@/components/ProductCard';
 
 async function getProduct(id: string) {
   const { data: product, error } = await supabase
@@ -27,6 +28,23 @@ async function getProduct(id: string) {
     .order('size');
 
   return { ...product, variants: variants || [] } as Product & { variants: any[] };
+}
+
+async function getRelatedProducts(productId: string, category: string) {
+  const { data: relatedProducts, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('category', category)
+    .neq('id', productId)
+    .gt('stock', 0)
+    .limit(4);
+
+  if (error) {
+    console.error('Error fetching related products:', error);
+    return [];
+  }
+
+  return relatedProducts as Product[];
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -53,6 +71,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       </>
     );
   }
+
+  // Cargar productos relacionados
+  const relatedProducts = await getRelatedProducts(id, product.category);
 
   return (
     <>
@@ -141,6 +162,20 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         </div>
+
+        {/* Productos relacionados */}
+        {relatedProducts.length > 0 && (
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-16">
+            <h2 className="text-3xl font-black uppercase tracking-wider mb-8">
+              También te puede interesar
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {relatedProducts.map((relatedProduct) => (
+                <ProductCard key={relatedProduct.id} product={relatedProduct} />
+              ))}
+            </div>
+          </div>
+        )}
       </main>
       </div>
     </>

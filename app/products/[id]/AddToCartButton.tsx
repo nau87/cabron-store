@@ -3,6 +3,7 @@
 import { Product } from '@/types';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 
 interface AddToCartButtonProps {
   product: Product & { variants?: any[] };
@@ -67,7 +68,7 @@ export default function AddToCartButton({ product }: AddToCartButtonProps) {
     if (size) {
       const variant = variants.find(v => v.size === size);
       if (!variant) {
-        alert('Talle no disponible');
+        toast.error('TALLE NO DISPONIBLE');
         setIsAdding(false);
         return;
       }

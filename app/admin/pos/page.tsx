@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import AdminNav from '@/components/AdminNav';
 import { useReceiptGenerator } from '@/components/ReceiptGenerator';
 import Image from 'next/image';
+import toast from 'react-hot-toast';
 
 interface Product {
   id: string;
@@ -182,7 +183,7 @@ export default function POSPage() {
         newCart[existingIndex].quantity += 1;
         setCart(newCart);
       } else {
-        alert('No hay más stock disponible');
+        toast.error('NO HAY MÁS STOCK DISPONIBLE');
       }
     } else {
       setCart([...cart, { product, quantity: 1, discount: 0 }]);
@@ -191,14 +192,14 @@ export default function POSPage() {
 
   const confirmAddToCart = async () => {
     if (!selectedProductForSize || !selectedSize) {
-      alert('Selecciona un talle');
+      toast.error('SELECCIONA UN TALLE');
       return;
     }
 
     // Buscar la variante del talle seleccionado
     const sizeInfo = availableSizes.find(s => s.size === selectedSize);
     if (!sizeInfo) {
-      alert(`No hay stock disponible del talle ${selectedSize}`);
+      toast.error(`NO HAY STOCK DISPONIBLE DEL TALLE ${selectedSize}`);
       return;
     }
 
@@ -210,7 +211,7 @@ export default function POSPage() {
       .single();
 
     if (error || !variant) {
-      alert(`Error al cargar la variante`);
+      toast.error('ERROR AL CARGAR LA VARIANTE');
       console.error('Error:', error);
       return;
     }
@@ -235,7 +236,7 @@ export default function POSPage() {
         newCart[existingIndex].quantity += 1;
         setCart(newCart);
       } else {
-        alert('No hay más stock disponible');
+        toast.error('NO HAY MÁS STOCK DISPONIBLE');
       }
     } else {
       setCart([...cart, { 
@@ -259,7 +260,7 @@ export default function POSPage() {
     } else if (quantity <= newCart[index].product.stock) {
       newCart[index].quantity = quantity;
     } else {
-      alert('No hay suficiente stock');
+      toast.error('NO HAY SUFICIENTE STOCK');
       return;
     }
     setCart(newCart);
@@ -293,18 +294,18 @@ export default function POSPage() {
 
   const completeSale = async () => {
     if (cart.length === 0) {
-      alert('El carrito está vacío');
+      toast.error('EL CARRITO ESTÁ VACÍO');
       return;
     }
 
     if (!customer.name.trim()) {
-      alert('Ingresa el nombre del cliente');
+      toast.error('INGRESA EL NOMBRE DEL CLIENTE');
       return;
     }
 
     // Si es venta a cuenta corriente, el cliente debe estar registrado
     if (isAccountSale && !customer.id) {
-      alert('Para venta a cuenta corriente debes seleccionar un cliente registrado');
+      toast.error('PARA VENTA A CUENTA CORRIENTE DEBÉS SELECCIONAR UN CLIENTE REGISTRADO');
       return;
     }
 
@@ -423,7 +424,7 @@ export default function POSPage() {
 
         if (accountError) {
           console.error('Error registrando en cuenta corriente:', accountError);
-          alert('⚠️ Venta completada pero error al registrar en cuenta corriente');
+          toast('VENTA COMPLETADA PERO ERROR AL REGISTRAR EN CUENTA CORRIENTE', { icon: '⚠️' });
         } else {
           // Actualizar la transacción creada con receipt_data
           const { error: updateError } = await supabase
@@ -454,7 +455,7 @@ export default function POSPage() {
         ? `✅ Venta #${saleNumber} a cuenta corriente!\nTotal: $${total.toFixed(2)}`
         : `✅ Venta #${saleNumber} completada!\nTotal: $${total.toFixed(2)}`;
       
-      alert(message);
+      toast.success(message);
 
       // Preguntar si desea generar comprobante
       if (confirm('¿Desea generar el comprobante de venta?')) {
@@ -477,7 +478,7 @@ export default function POSPage() {
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al procesar la venta');
+      toast.error('ERROR AL PROCESAR LA VENTA');
     } finally {
       setProcessingSale(false);
     }
@@ -485,17 +486,17 @@ export default function POSPage() {
 
   const handleReturn = async () => {
     if (!returnSku.trim()) {
-      alert('Ingresa el SKU del producto');
+      toast.error('INGRESA EL SKU DEL PRODUCTO');
       return;
     }
 
     if (!returnSize.trim()) {
-      alert('Ingresa el talle del producto');
+      toast.error('INGRESA EL TALLE DEL PRODUCTO');
       return;
     }
 
     if (returnQuantity < 1) {
-      alert('La cantidad debe ser mayor a 0');
+      toast.error('LA CANTIDAD DEBE SER MAYOR A 0');
       return;
     }
 
@@ -510,7 +511,7 @@ export default function POSPage() {
         .single();
 
       if (productError || !product) {
-        alert('No se encontró un producto con ese SKU');
+        toast.error('NO SE ENCONTRÓ UN PRODUCTO CON ESE SKU');
         setProcessingReturn(false);
         return;
       }
@@ -524,7 +525,7 @@ export default function POSPage() {
         .single();
 
       if (variantError || !variant) {
-        alert(`No se encontró el talle ${returnSize.trim()} para este producto`);
+        toast.error(`NO SE ENCONTRÓ EL TALLE ${returnSize.trim()} PARA ESTE PRODUCTO`);
         setProcessingReturn(false);
         return;
       }
@@ -562,7 +563,7 @@ export default function POSPage() {
           reason: `Devolución manual - SKU: ${returnSku} Talle: ${returnSize}`,
         });
 
-      alert(`✅ Devolución procesada!\nProducto: ${product.name} - Talle ${returnSize}\nStock actualizado: ${newStock}`);
+      toast.success(`DEVOLUCIÓN PROCESADA!\nProducto: ${product.name} - Talle ${returnSize}\nStock actualizado: ${newStock}`);
       
       // Limpiar y cerrar modal
       setReturnSku('');
@@ -572,7 +573,7 @@ export default function POSPage() {
       loadProducts(); // Recargar productos
     } catch (error) {
       console.error('Error en devolución:', error);
-      alert('Error al procesar la devolución');
+      toast.error('ERROR AL PROCESAR LA DEVOLUCIÓN');
     } finally {
       setProcessingReturn(false);
     }
@@ -766,7 +767,7 @@ export default function POSPage() {
                 onChange={(e) => {
                   setIsAccountSale(e.target.checked);
                   if (e.target.checked && customer.name === 'Cliente General') {
-                    alert('Debes seleccionar un cliente registrado para venta a cuenta corriente');
+                    toast.error('DEBÉS SELECCIONAR UN CLIENTE REGISTRADO PARA VENTA A CUENTA CORRIENTE');
                     setShowCustomerModal(true);
                   }
                 }}

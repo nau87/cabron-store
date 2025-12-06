@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import AdminNav from '@/components/AdminNav';
 import Image from 'next/image';
+import toast from 'react-hot-toast';
 
 interface Order {
   id: string;
@@ -102,7 +103,7 @@ export default function OrdersPage() {
       }
     } catch (error) {
       console.error('Error updating order:', error);
-      alert('Error al actualizar el estado');
+      toast.error('ERROR AL ACTUALIZAR EL ESTADO');
     }
   };
 
@@ -164,11 +165,11 @@ export default function OrdersPage() {
       console.log('Recargando lista de pedidos...');
       await loadOrders();
       
-      alert('Pedido cancelado y stock restaurado exitosamente');
+      toast.success('PEDIDO CANCELADO Y STOCK RESTAURADO EXITOSAMENTE');
       
     } catch (error: any) {
       console.error('Error cancelling order:', error);
-      alert(`Error al cancelar el pedido: ${error.message || 'Error desconocido'}`);
+      toast.error(`ERROR AL CANCELAR EL PEDIDO: ${error.message || 'Error desconocido'}`);
     } finally {
       setCancelling(false);
     }

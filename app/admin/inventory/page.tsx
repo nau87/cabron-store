@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Product } from '@/types';
 import AdminNav from '@/components/AdminNav';
 import Image from 'next/image';
+import toast from 'react-hot-toast';
 
 interface ProductVariant {
   id: string;
@@ -101,7 +102,7 @@ export default function InventoryPage() {
 
     const newStock = selectedProduct.stock + adjustment;
     if (newStock < 0) {
-      alert('El stock no puede ser negativo');
+      toast.error('EL STOCK NO PUEDE SER NEGATIVO');
       return;
     }
 
@@ -113,7 +114,7 @@ export default function InventoryPage() {
 
     if (updateError) {
       console.error('Error updating stock:', updateError);
-      alert('Error al actualizar stock');
+      toast.error('ERROR AL ACTUALIZAR STOCK');
       return;
     }
 
@@ -144,7 +145,7 @@ export default function InventoryPage() {
     setAdjustment(0);
     setReason('');
     
-    alert('Stock actualizado correctamente');
+    toast.success('STOCK ACTUALIZADO CORRECTAMENTE');
   };
 
   const openModal = async (product: Product) => {
@@ -178,7 +179,7 @@ export default function InventoryPage() {
 
     const newStock = selectedVariant.stock + variantAdjustment;
     if (newStock < 0) {
-      alert('El stock no puede ser negativo');
+      toast.error('EL STOCK NO PUEDE SER NEGATIVO');
       return;
     }
 
@@ -193,7 +194,7 @@ export default function InventoryPage() {
 
     if (updateError) {
       console.error('Error updating variant stock:', updateError);
-      alert('Error al actualizar stock de variante');
+      toast.error('ERROR AL ACTUALIZAR STOCK DE VARIANTE');
       return;
     }
 
@@ -209,7 +210,7 @@ export default function InventoryPage() {
     setVariantAdjustment(0);
     setVariantReason('');
     
-    alert('Stock de variante actualizado correctamente');
+    toast.success('STOCK DE VARIANTE ACTUALIZADO CORRECTAMENTE');
   };
 
   // Filtrar productos

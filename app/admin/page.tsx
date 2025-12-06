@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import ProductVariantsManager from '@/components/ProductVariantsManager';
 import Image from 'next/image';
+import toast from 'react-hot-toast';
 
 interface Product {
   id: string;
@@ -302,13 +303,13 @@ function ProductModal({
     const files = Array.from(e.target.files || []);
     
     if (imagePreviews.length + files.length > 3) {
-      alert('Máximo 3 imágenes por producto');
+      toast.error('MÁXIMO 3 IMÁGENES POR PRODUCTO');
       return;
     }
 
     for (const file of files) {
       if (file.size > 5 * 1024 * 1024) {
-        alert(`${file.name} supera los 5MB`);
+        toast.error(`${file.name} SUPERA LOS 5MB`);
         continue;
       }
 
@@ -440,7 +441,7 @@ function ProductModal({
       return finalUrls;
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert('Error al subir las imágenes');
+      toast.error('ERROR AL SUBIR LAS IMÁGENES');
       return [];
     } finally {
       setUploadingImage(false);
@@ -456,7 +457,7 @@ function ProductModal({
       const imageUrls = await uploadImages();
       
       if (imageUrls.length === 0) {
-        alert('Debes subir al menos una imagen');
+        toast.error('DEBES SUBIR AL MENOS UNA IMAGEN');
         setLoading(false);
         return;
       }

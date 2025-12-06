@@ -8,6 +8,7 @@ import Header from '@/components/Header';
 import Image from 'next/image';
 import Link from 'next/link';
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
+import toast from 'react-hot-toast';
 
 // Inicializar Mercado Pago
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
@@ -157,7 +158,7 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Hubo un error al procesar tu pedido. Por favor intenta de nuevo.');
+      toast.error('ERROR AL PROCESAR TU PEDIDO. POR FAVOR INTENTA DE NUEVO');
     } finally {
       setLoading(false);
     }
@@ -287,24 +288,24 @@ export default function CheckoutPage() {
         localStorage.removeItem('cart');
         setOrderPlaced(true);
       } else if (result.status === 'in_process' || result.status === 'pending') {
-        alert('Tu pago está siendo procesado. Te notificaremos cuando se apruebe.');
+        toast('TU PAGO ESTÁ SIENDO PROCESADO. TE NOTIFICAREMOS CUANDO SE APRUEBE', { icon: '⏳' });
         localStorage.removeItem('cart');
         setOrderPlaced(true);
       } else {
-        alert('Hubo un problema con el pago. Por favor intenta de nuevo.');
+        toast.error('HUBO UN PROBLEMA CON EL PAGO. POR FAVOR INTENTA DE NUEVO');
       }
 
       return result;
     } catch (error) {
       console.error('Error processing payment:', error);
-      alert('Error al procesar el pago');
+      toast.error('ERROR AL PROCESAR EL PAGO');
       throw error;
     }
   };
 
   const onErrorPayment = (error: any) => {
     console.error('Payment error:', error);
-    alert('Error en el pago. Por favor intenta de nuevo.');
+    toast.error('ERROR EN EL PAGO. POR FAVOR INTENTA DE NUEVO');
   };
 
   if (orderPlaced) {

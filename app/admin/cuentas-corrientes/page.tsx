@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import AdminNav from '@/components/AdminNav';
 import { useReceiptGenerator } from '@/components/ReceiptGenerator';
+import toast from 'react-hot-toast';
 
 interface Customer {
   customer_id: string;
@@ -123,13 +124,13 @@ export default function CuentasCorrientesPage() {
 
   const handleRegisterPayment = async () => {
     if (!selectedCustomer || !paymentAmount) {
-      alert('Ingresa el monto del pago');
+      toast.error('INGRESA EL MONTO DEL PAGO');
       return;
     }
 
     const amount = parseFloat(paymentAmount);
     if (amount <= 0) {
-      alert('El monto debe ser mayor a 0');
+      toast.error('EL MONTO DEBE SER MAYOR A 0');
       return;
     }
 
@@ -172,7 +173,7 @@ export default function CuentasCorrientesPage() {
         console.error('Error actualizando receipt_data del pago:', updateError);
       }
 
-      alert('✅ Pago registrado exitosamente');
+      toast.success('PAGO REGISTRADO EXITOSAMENTE');
       
       // Guardar datos para comprobante
       const receiptCustomerName = selectedCustomer.full_name;
@@ -208,7 +209,7 @@ export default function CuentasCorrientesPage() {
       }
     } catch (error) {
       console.error('Error registering payment:', error);
-      alert('Error al registrar el pago');
+      toast.error('ERROR AL REGISTRAR EL PAGO');
     } finally {
       setProcessingPayment(false);
     }

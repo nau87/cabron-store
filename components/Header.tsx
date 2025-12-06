@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react';
 import { CartItem } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthModal from './AuthModal';
+import { Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface HeaderProps {
   searchTerm?: string;
@@ -49,6 +51,29 @@ export default function Header({ searchTerm, onSearchChange }: HeaderProps = {})
     const updatedCart = cartItems.filter(item => !(item.product.id === productId && item.selectedSize === selectedSize));
     setCartItems(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
+    toast.success('PRODUCTO ELIMINADO DEL CARRITO');
+  };
+
+  const updateQuantity = (productId: string, selectedSize: string | undefined, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    
+    const updatedCart = cartItems.map(item => {
+      if (item.product.id === productId && item.selectedSize === selectedSize) {
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    });
+    
+    setCartItems(updatedCart);
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
+  };
+
+  const clearCart = () => {
+    if (confirm('¿Estás seguro que deseas vaciar el carrito?')) {
+      setCartItems([]);
+      localStorage.removeItem('cart');
+      toast.success('CARRITO VACIADO');
+    }
   };
 
   return (
@@ -317,50 +342,114 @@ export default function Header({ searchTerm, onSearchChange }: HeaderProps = {})
 
         {/* Cart Dropdown */}
         {isCartOpen && (
-          <div className="absolute right-4 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-md bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-4 z-50">
-            <h3 className="text-lg font-semibold mb-4">Carrito de Compras</h3>
+          <div className="absolute right-4 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-md bg-white rounded-lg shadow-2xl z-50 border border-zinc-200">
+            <div className="p-4 border-b border-zinc-200 flex justify-between items-center">
+              <h3 className="text-lg font-black uppercase tracking-wider">Mi Carrito</h3>
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="text-zinc-500 hover:text-black"
+              >
+                ✕
+              </button>
+            </div>
             
             {cartItems.length === 0 ? (
-              <p className="text-zinc-500 dark:text-zinc-400">Tu carrito está vacío</p>
+              <div className="p-8 text-center">
+                <ShoppingCart size={48} className="mx-auto mb-4 text-zinc-300" />
+                <p className="text-zinc-500 uppercase tracking-wide mb-4">Tu carrito está vacío</p>
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-semibold uppercase"
+                >
+                  Seguir comprando
+                </button>
+              </div>
             ) : (
               <>
-                <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
+                <div className="space-y-4 max-h-96 overflow-y-auto p-4">
                   {cartItems.map((item, index) => (
-                    <div key={`${item.product.id}-${item.selectedSize || 'no-size'}-${index}`} className="flex justify-between items-center border-b pb-2">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{item.product.name}</p>
+                    <div key={`${item.product.id}-${item.selectedSize || 'no-size'}-${index}`} className="flex gap-3 border-b pb-4">
+                      {/* Imagen del producto */}
+                      <div className="relative w-20 h-20 flex-shrink-0 bg-zinc-100 rounded overflow-hidden">
+                        <Image
+                          src={item.product.image_url}
+                          alt={item.product.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      
+                      {/* Info del producto */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm uppercase tracking-wide truncate">
+                          {item.product.name}
+                        </h4>
                         {item.selectedSize && (
-                          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                            Talle: {item.selectedSize}
+                          <p className="text-xs text-zinc-600 mt-1">
+                            Talle: <span className="font-semibold">{item.selectedSize}</span>
                           </p>
                         )}
-                        <p className="text-xs text-zinc-500">
-                          ${item.product.price} x {item.quantity}
+                        <p className="text-sm font-black mt-1">
+                          ${item.product.price.toLocaleString('es-AR')}
                         </p>
+                        
+                        {/* Controles de cantidad */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            onClick={() => updateQuantity(item.product.id, item.selectedSize, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            className="w-6 h-6 rounded-full border border-zinc-300 flex items-center justify-center hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <span className="text-sm font-bold w-8 text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.product.id, item.selectedSize, item.quantity + 1)}
+                            className="w-6 h-6 rounded-full border border-zinc-300 flex items-center justify-center hover:bg-zinc-100"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
                       </div>
+                      
+                      {/* Botón eliminar */}
                       <button
                         onClick={() => removeFromCart(item.product.id, item.selectedSize)}
-                        className="text-red-500 text-sm ml-2"
+                        className="text-red-500 hover:text-red-700 transition-colors flex-shrink-0"
+                        title="Eliminar"
                       >
-                        ✕
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   ))}
                 </div>
                 
-                <div className="border-t pt-3">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="font-semibold">Total:</span>
-                    <span className="font-bold text-lg">${cartTotal.toFixed(2)}</span>
+                {/* Footer del carrito */}
+                <div className="p-4 border-t border-zinc-200 space-y-3">
+                  {/* Total */}
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold uppercase tracking-wider">Total:</span>
+                    <span className="font-black text-xl">${cartTotal.toLocaleString('es-AR')}</span>
                   </div>
                   
-                  <Link
-                    href="/checkout"
-                    className="block w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-center py-2 rounded-lg hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
-                    onClick={() => setIsCartOpen(false)}
-                  >
-                    Ir a Pagar
-                  </Link>
+                  {/* Botones */}
+                  <div className="space-y-2">
+                    <Link
+                      href="/checkout"
+                      className="block w-full bg-black text-white text-center py-3 rounded-lg hover:bg-zinc-800 transition-colors font-bold uppercase tracking-wider"
+                      onClick={() => setIsCartOpen(false)}
+                    >
+                      Ir a Pagar
+                    </Link>
+                    
+                    <button
+                      onClick={clearCart}
+                      className="w-full border-2 border-red-500 text-red-500 py-2 rounded-lg hover:bg-red-50 transition-colors font-semibold uppercase tracking-wider text-sm flex items-center justify-center gap-2"
+                    >
+                      <Trash2 size={16} />
+                      Vaciar Carrito
+                    </button>
+                  </div>
                 </div>
               </>
             )}
