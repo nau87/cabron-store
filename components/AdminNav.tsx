@@ -2,9 +2,36 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminNav() {
   const pathname = usePathname();
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+
+  useEffect(() => {
+    loadNewOrdersCount();
+    
+    // Actualizar cada 30 segundos
+    const interval = setInterval(loadNewOrdersCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadNewOrdersCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('sales')
+        .select('*', { count: 'exact', head: true })
+        .eq('sale_type', 'online')
+        .in('status', ['pending_payment', 'approved']);
+
+      if (!error && count !== null) {
+        setNewOrdersCount(count);
+      }
+    } catch (error) {
+      console.error('Error loading new orders count:', error);
+    }
+  };
 
   const navItems = [
     { href: '/admin', label: '📦 Productos', exact: true },
@@ -42,30 +69,43 @@ export default function AdminNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colors relative ${
                   isActive(item.href, item.exact)
                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
                 }`}
               >
                 {item.label}
+                {item.href === '/admin/orders' && newOrdersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {newOrdersCount}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
 
           {/* Navegación Mobile */}
           <div className="md:hidden flex-1 ml-4">
-            <select
-              value={pathname}
-              onChange={(e) => window.location.href = e.target.value}
-              className="w-full px-3 py-2 bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-sm"
-            >
-              {navItems.map((item) => (
-                <option key={item.href} value={item.href}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={pathname}
+                onChange={(e) => window.location.href = e.target.value}
+                className="w-full px-3 py-2 bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-sm"
+              >
+                {navItems.map((item) => (
+                  <option key={item.href} value={item.href}>
+                    {item.label}
+                    {item.href === '/admin/orders' && newOrdersCount > 0 ? ` (${newOrdersCount})` : ''}
+                  </option>
+                ))}
+              </select>
+              {newOrdersCount > 0 && (
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {newOrdersCount}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
