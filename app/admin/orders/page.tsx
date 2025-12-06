@@ -31,8 +31,6 @@ interface Order {
 }
 
 export default function OrdersPage() {
-  const { isAdmin, loading } = useAuth();
-  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -40,19 +38,11 @@ export default function OrdersPage() {
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
-      router.push('/');
-    }
-  }, [isAdmin, loading, router]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      loadOrders();
-      // Actualizar cada 30 segundos
-      const interval = setInterval(loadOrders, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [isAdmin, filter]);
+    loadOrders();
+    // Actualizar cada 30 segundos
+    const interval = setInterval(loadOrders, 30000);
+    return () => clearInterval(interval);
+  }, [filter]);
 
   const loadOrders = async () => {
     try {

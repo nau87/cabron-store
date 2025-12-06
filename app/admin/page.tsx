@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import ProductVariantsManager from '@/components/ProductVariantsManager';
@@ -24,7 +23,6 @@ interface Product {
 }
 
 export default function AdminPage() {
-  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
