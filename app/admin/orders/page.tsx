@@ -23,6 +23,7 @@ interface Order {
   discount_amount?: number;
   items: {
     product_id: string;
+    variant_id?: string;
     quantity: number;
     price: number;
     size?: string;
@@ -133,27 +134,53 @@ export default function OrdersPage() {
 
       console.log('Pedido actualizado a cancelled');
 
-      // Restaurar el stock de cada producto
+      // Restaurar el stock de cada producto/variante
       for (const item of order.items) {
-        console.log(`Restaurando stock para producto ${item.product_id}, cantidad: ${item.quantity}`);
+        console.log(`Restaurando stock para item:`, item);
         
-        // Incrementar stock directamente
-        const { data: product } = await supabase
-          .from('products')
-          .select('stock')
-          .eq('id', item.product_id)
-          .single();
+        // Si el item tiene variant_id, usar la función RPC para restaurar stock
+        if (item.variant_id) {
+          const { data, error: rpcError } = await supabase.rpc('increment_variant_stock', {
+            p_variant_id: item.variant_id,
+            p_quantity: item.quantity
+          });
 
-        if (product) {
-          const { error: stockError } = await supabase
-            .from('products')
-            .update({ stock: product.stock + item.quantity })
-            .eq('id', item.product_id);
-
-          if (stockError) {
-            console.error(`Error restoring stock for product ${item.product_id}:`, stockError);
+          if (rpcError) {
+            console.error(`❌ Error restaurando stock en variante ${item.variant_id}:`, rpcError);
+            toast.error(`Error al restaurar stock: ${rpcError.message}`);
           } else {
-            console.log(`Stock restaurado para producto ${item.product_id}`);
+            const result = data?.[0];
+            if (result?.success) {
+              console.log(`✅ Stock restaurado en variante ${item.variant_id}: ${result.new_stock}`);
+            } else {
+              console.error(`❌ Error: ${result?.error_message}`);
+            }
+          }
+        } else {
+          // Si NO tiene variant_id (productos viejos sin variantes), restaurar directamente en products
+          const { data: product, error: productFetchError } = await supabase
+            .from('products')
+            .select('stock')
+            .eq('id', item.product_id)
+            .single();
+
+          if (productFetchError) {
+            console.error(`Error fetching product ${item.product_id}:`, productFetchError);
+            continue;
+          }
+
+          if (product) {
+            const newProductStock = product.stock + item.quantity;
+            const { error: stockError } = await supabase
+              .from('products')
+              .update({ stock: newProductStock })
+              .eq('id', item.product_id);
+
+            if (stockError) {
+              console.error(`Error restaurando stock en producto ${item.product_id}:`, stockError);
+            } else {
+              console.log(`✅ Stock restaurado en producto ${item.product_id}: ${product.stock} → ${newProductStock}`);
+            }
           }
         }
       }
