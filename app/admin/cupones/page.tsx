@@ -59,12 +59,18 @@ export default function CouponsPage() {
 
   const loadCoupons = async () => {
     try {
+      console.log('🔄 Cargando cupones...');
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error al cargar cupones:', error);
+        throw error;
+      }
+      
+      console.log('✅ Cupones cargados:', data);
       setCoupons(data || []);
     } catch (error) {
       console.error('Error loading coupons:', error);
@@ -110,11 +116,14 @@ export default function CouponsPage() {
         if (error) throw error;
         toast.success('CUPÓN ACTUALIZADO');
       } else {
-        const { error } = await supabase
+        console.log('📝 Creando nuevo cupón:', couponData);
+        const { data, error } = await supabase
           .from('coupons')
-          .insert([couponData]);
+          .insert([couponData])
+          .select();
 
         if (error) {
+          console.error('❌ Error al crear cupón:', error);
           if (error.code === '23505') {
             toast.error('YA EXISTE UN CUPÓN CON ESE CÓDIGO');
           } else {
@@ -122,11 +131,12 @@ export default function CouponsPage() {
           }
           return;
         }
+        console.log('✅ Cupón creado exitosamente:', data);
         toast.success('CUPÓN CREADO');
       }
 
       resetForm();
-      loadCoupons();
+      await loadCoupons(); // Recargar lista inmediatamente
     } catch (error) {
       console.error('Error saving coupon:', error);
       toast.error('ERROR AL GUARDAR CUPÓN');

@@ -56,7 +56,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   const hasSizes = variants.length > 0;
 
   const handleAddToCart = () => {
-    if (hasSizes && !selectedSize) {
+    // SIEMPRE abrir modal de talles si hay variantes
+    if (hasSizes) {
       setShowSizeModal(true);
       return;
     }
