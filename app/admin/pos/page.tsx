@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { useReceiptGenerator } from '@/components/ReceiptGenerator';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -33,6 +34,7 @@ interface Customer {
 }
 
 export default function POSPage() {
+  const { user } = useAuth();
   const { generateAndDownload } = useReceiptGenerator();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
